@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NexaTools Pro — Private Image Compressor, QR Code Designer & Text Studio</title>
+<meta name="description" content="NexaTools Pro is a free, private, browser-based toolkit: bulk image compressor (WebP/JPEG/PNG + ZIP), styled QR code designer with logo, and an AI-ready text & Markdown studio. Zero uploads.">
+<meta name="theme-color" content="#08090d">
+<meta property="og:title" content="NexaTools Pro — 100% Private Browser Utilities">
+<meta property="og:description" content="Compress images in bulk, design QR codes with your logo, and analyze text — all locally in your browser.">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class', theme: { extend: {} } };
+</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "NexaTools Pro",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Any (Web Browser)",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "description": "Free, private, browser-based image compressor, QR code designer and text analysis studio. No uploads, no sign-up.",
+      "featureList": ["Bulk image compression to WebP, JPEG and PNG", "Download all images as ZIP", "QR codes with custom logo, colors and dot styles", "Word count, reading time and keyword density", "7 languages including RTL Arabic"]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Are my files uploaded to a server?", "acceptedAnswer": { "@type": "Answer", "text": "No. Everything runs locally in your browser using JavaScript and the Canvas API. Your images, text and QR data never leave your device." } },
+        { "@type": "Question", "name": "Is NexaTools Pro really free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. There are no limits, no sign-ups and no watermarks." } },
+        { "@type": "Question", "name": "Which image formats are supported?", "acceptedAnswer": { "@type": "Answer", "text": "Import JPG, PNG, WebP, GIF, BMP and AVIF (browser dependent) and export to WebP, JPEG or PNG." } },
+        { "@type": "Question", "name": "Can I add my logo to a QR code?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Upload a logo in the QR designer; error correction is raised automatically so the code stays scannable." } },
+        { "@type": "Question", "name": "Does it work with a slow connection?", "acceptedAnswer": { "@type": "Answer", "text": "All processing is local. Only the page libraries are loaded from CDNs on first visit." } }
+      ]
+    }
+  ]
+}
+</script>
+
+<style>
+  :root{
+    --bg:#f6f7fb; --surface:rgba(255,255,255,.72); --solid:#ffffff; --border:rgba(15,23,42,.09);
+    --text:#0f172a; --muted:#64748b; --accent:#6366f1; --accent2:#8b5cf6; --ring:rgba(99,102,241,.38);
+    --good:#10b981; --bad:#ef4444; --field:rgba(15,23,42,.04);
+  }
+  html.dark{
+    --bg:#07080c; --surface:rgba(22,24,34,.62); --solid:#12141d; --border:rgba(255,255,255,.08);
+    --text:#e9ebf3; --muted:#8c94a9; --ring:rgba(129,140,248,.45); --field:rgba(255,255,255,.045);
+  }
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    transition:background .3s,color .3s;
+  }
+  html[lang="ar"] body{font-family:'Cairo','Plus Jakarta Sans',system-ui,sans-serif}
+  html[lang="ja"] body{font-family:'Noto Sans JP','Plus Jakarta Sans',system-ui,sans-serif}
+  *:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+
+  .glass{background:var(--surface);-webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:18px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+  .solid{background:var(--solid)}
+  .muted{color:var(--muted)}
+  .hairline{border-color:var(--border)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.55rem .9rem;border-radius:12px;font-weight:600;font-size:.85rem;line-height:1.1;border:1px solid var(--border);background:var(--field);color:var(--text);cursor:pointer;transition:transform .15s,background .2s,border-color .2s,box-shadow .2s;user-select:none;white-space:nowrap}
+  .btn:hover{background:var(--surface);border-color:var(--ring)}
+  .btn:active{transform:scale(.97)}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;pointer-events:none}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#fff;box-shadow:0 6px 22px -8px var(--accent)}
+  .btn-primary:hover{background:linear-gradient(135deg,var(--accent),var(--accent2));filter:brightness(1.1);border-color:transparent}
+  .btn-ghost{background:transparent}
+  .btn-sm{padding:.4rem .65rem;font-size:.78rem;border-radius:10px}
+
+  .input{width:100%;padding:.65rem .85rem;border-radius:12px;background:var(--field);border:1px solid var(--border);color:var(--text);font-size:.9rem;transition:border-color .2s,box-shadow .2s}
+  .input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
+  .input::placeholder{color:var(--muted);opacity:.7}
+  select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238c94a9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .7rem center;padding-right:2rem}
+  html[dir="rtl"] select.input{background-position:left .7rem center;padding-right:.85rem;padding-left:2rem}
+  textarea.input{resize:vertical}
+  input[type=range]{accent-color:var(--accent);width:100%;cursor:pointer}
+  input[type=color]{width:2.4rem;height:2.4rem;border:1px solid var(--border);border-radius:10px;background:transparent;padding:2px;cursor:pointer}
+  label.lbl,.lbl{display:block;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem}
+  html[lang="ar"] .lbl,html[lang="ja"] .lbl{letter-spacing:0;text-transform:none}
+
+  .seg{display:flex;gap:.25rem;padding:.25rem;border-radius:12px;background:var(--field);border:1px solid var(--border)}
+  .seg button{flex:1;padding:.42rem .5rem;border-radius:9px;font-size:.8rem;font-weight:600;color:var(--muted);transition:all .18s;white-space:nowrap}
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 14px -6px var(--accent)}
+
+  .tab{padding:.5rem .85rem;border-radius:11px;font-size:.82rem;font-weight:600;color:var(--muted);display:inline-flex;gap:.4rem;align-items:center;white-space:nowrap;border:1px solid transparent;transition:all .18s}
+  .tab:hover{color:var(--text);background:var(--field)}
+  .tab.on{color:var(--text);background:var(--field);border-color:var(--border);box-shadow:inset 0 -2px 0 var(--accent)}
+
+  .gradient-text{background:linear-gradient(120deg,#818cf8 0%,#c084fc 45%,#22d3ee 100%);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% auto;animation:shine 8s linear infinite}
+  @keyframes shine{to{background-position:200% center}}
+
+  .mesh{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .mesh i{position:absolute;border-radius:9999px;filter:blur(90px);opacity:.45;animation:float 18s ease-in-out infinite}
+  .mesh i:nth-child(1){width:520px;height:520px;background:#6366f1;top:-140px;left:-80px}
+  .mesh i:nth-child(2){width:460px;height:460px;background:#a855f7;top:20px;right:-120px;animation-delay:-6s}
+  .mesh i:nth-child(3){width:420px;height:420px;background:#06b6d4;bottom:-200px;left:35%;animation-delay:-11s;opacity:.3}
+  html:not(.dark) .mesh i{opacity:.28}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,40px) scale(1.12)}66%{transform:translate(-40px,60px) scale(.94)}}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(ellipse at 50% 0%,#000 0%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 0%,transparent 70%)}
+
+  .secure{background:linear-gradient(135deg,rgba(16,185,129,.16),rgba(16,185,129,.05));border:1px solid rgba(16,185,129,.4);color:#10b981;box-shadow:0 0 24px -6px rgba(16,185,129,.55);animation:glow 3s ease-in-out infinite}
+  @keyframes glow{0%,100%{box-shadow:0 0 18px -8px rgba(16,185,129,.5)}50%{box-shadow:0 0 28px -4px rgba(16,185,129,.8)}}
+  html:not(.dark) .secure{color:#047857}
+  .pulse-dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 0 rgba(16,185,129,.7);animation:ping 2s infinite}
+  @keyframes ping{70%{box-shadow:0 0 0 8px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+
+  .tool-card{transition:transform .25s,border-color .25s,box-shadow .25s;position:relative;overflow:hidden}
+  .tool-card:hover{transform:translateY(-4px);border-color:var(--ring);box-shadow:0 18px 40px -22px var(--accent)}
+  .icon-tile{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+
+  .dropzone{border:2px dashed var(--border);border-radius:20px;transition:all .2s;cursor:pointer;background:var(--field)}
+  .dropzone:hover,.dropzone.over{border-color:var(--accent);background:var(--ring);background:color-mix(in srgb,var(--accent) 10%,transparent);transform:scale(1.005)}
+
+  .bar-fill{width:var(--w);height:100%;border-radius:9999px;background:linear-gradient(90deg,#10b981,#22d3ee);animation:grow .8s cubic-bezier(.2,.8,.2,1)}
+  @keyframes grow{from{width:0}}
+  .bar-indet{width:35%;height:100%;border-radius:9999px;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:slide 1.1s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+  html[dir="rtl"] .bar-indet{animation-name:slideRtl}
+  @keyframes slideRtl{0%{transform:translateX(100%)}100%{transform:translateX(-300%)}}
+  .bar-err{width:100%;height:100%;background:var(--bad);border-radius:9999px}
+
+  .ad{border:1px dashed var(--border);border-radius:14px;display:grid;place-items:center;color:var(--muted);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;background:repeating-linear-gradient(135deg,transparent 0 10px,var(--field) 10px 11px)}
+
+  .faq details{border:1px solid var(--border);border-radius:16px;background:var(--surface);transition:border-color .2s}
+  .faq details[open]{border-color:var(--ring)}
+  .faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1.05rem 1.2rem;font-weight:600}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary .chev{transition:transform .25s;flex:none}
+  .faq details[open] summary .chev{transform:rotate(180deg)}
+  .faq .ans{padding:0 1.2rem 1.15rem;color:var(--muted);line-height:1.7;font-size:.92rem}
+
+  #toasts{position:fixed;z-index:100;bottom:1rem;inset-inline:0;display:flex;flex-direction:column;align-items:center;gap:.5rem;pointer-events:none;padding:0 1rem}
+  .toast{pointer-events:auto;display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;border-radius:14px;background:var(--solid);border:1px solid var(--border);box-shadow:0 14px 40px -12px rgba(0,0,0,.45);font-size:.86rem;font-weight:500;max-width:min(92vw,420px);animation:tin .28s cubic-bezier(.2,.9,.3,1.2)}
+  .toast.out{animation:tout .25s forwards}
+  .toast.success svg{color:var(--good)} .toast.error svg{color:var(--bad)} .toast.info svg{color:var(--accent)}
+  @keyframes tin{from{opacity:0;transform:translateY(14px) scale(.95)}}
+  @keyframes tout{to{opacity:0;transform:translateY(8px) scale(.96)}}
+
+  .view{display:none} .view.active{display:block;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}}
+
+  .qr-stage{background:#fff;border-radius:18px;padding:14px;display:grid;place-items:center;position:relative;box-shadow:0 20px 50px -24px rgba(0,0,0,.5)}
+  .qr-stage canvas,.qr-stage svg{max-width:100%;height:auto;display:block}
+  .qr-stage .veil{position:absolute;inset:0;border-radius:18px;background:rgba(255,255,255,.88);display:grid;place-items:center;text-align:center;color:#64748b;font-size:.85rem;font-weight:600;padding:1rem}
+
+  ::-webkit-scrollbar{width:10px;height:10px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px} ::-webkit-scrollbar-track{background:transparent}
+  .noscroll{scrollbar-width:none} .noscroll::-webkit-scrollbar{display:none}
+  .kw-bar{height:6px;border-radius:9999px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+
+<body>
+<noscript><div style="padding:2rem;text-align:center">NexaTools Pro needs JavaScript enabled to run.</div></noscript>
+
+<!-- ============ NAVBAR ============ -->
+<header class="sticky top-0 z-40 glass border-b hairline">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <a href="#home" class="flex items-center gap-2.5 shrink-0" aria-label="NexaTools Pro">
+      <span class="icon-tile !w-9 !h-9 !rounded-xl"><i data-lucide="sparkles" class="w-5 h-5"></i></span>
+      <span class="font-extrabold tracking-tight text-lg">Nexa<span class="gradient-text">Tools</span> <span class="text-[10px] align-top font-bold px-1.5 py-0.5 rounded-md bg-[var(--field)] border hairline muted">PRO</span></span>
+    </a>
+
+    <nav class="hidden lg:flex items-center gap-1" aria-label="Main">
+      <a href="#image-compressor" class="tab" data-nav="image-compressor"><i data-lucide="image-down" class="w-4 h-4"></i><span data-i18n="nav_img"></span></a>
+      <a href="#qr-generator" class="tab" data-nav="qr-generator"><i data-lucide="qr-code" class="w-4 h-4"></i><span data-i18n="nav_qr"></span></a>
+      <a href="#text-studio" class="tab" data-nav="text-studio"><i data-lucide="file-text" class="w-4 h-4"></i><span data-i18n="nav_text"></span></a>
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <div class="secure hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold">
+        <span class="pulse-dot"></span><i data-lucide="shield-check" class="w-3.5 h-3.5"></i><span data-i18n="badge"></span>
+      </div>
+      <div class="secure md:hidden grid place-items-center w-9 h-9 rounded-full" data-i18n-title="badge" title="100% Private"><i data-lucide="shield-check" class="w-4 h-4"></i></div>
+
+      <div class="relative" id="langWrap">
+        <button id="langBtn" class="btn gap-2" aria-haspopup="listbox" aria-expanded="false" data-i18n-title="lang" title="Language">
+          <i data-lucide="globe" class="w-4 h-4"></i><span id="langCode" class="font-bold">EN</span><i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-60"></i>
+        </button>
+        <ul id="langMenu" role="listbox" class="hidden absolute end-0 mt-2 w-52 card solid p-1.5 z-50 shadow-2xl"></ul>
+      </div>
+
+      <button id="themeBtn" class="btn !px-2.5" data-i18n-title="theme" title="Theme" aria-label="Toggle theme">
+        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i><i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+      </button>
+    </div>
+  </div>
+  <!-- tool pills (visible on tool routes) -->
+  <div id="toolPills" class="hidden border-t hairline">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex gap-1 overflow-x-auto noscroll">
+      <a href="#home" class="tab" data-pill="home"><i data-lucide="layout-grid" class="w-4 h-4"></i><span data-i18n="nav_home"></span></a>
+      <a href="#image-compressor" class="tab" data-pill="image-compressor"><i data-lucide="image-down" class="w-4 h-4"></i><span data-i18n="nav_img"></span></a>
+      <a href="#qr-generator" class="tab" data-pill="qr-generator"><i data-lucide="qr-code" class="w-4 h-4"></i><span data-i18n="nav_qr"></span></a>
+      <a href="#text-studio" class="tab" data-pill="text-studio"><i data-lucide="file-text" class="w-4 h-4"></i><span data-i18n="nav_text"></span></a>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ============ HOME ============ -->
+<section id="view-home" class="view">
+  <div class="relative">
+    <div class="mesh"><i></i><i></i><i></i></div>
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 text-center">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full card text-xs font-semibold mb-7">
+        <i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-500"></i><span data-i18n="badge"></span>
+      </div>
+      <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08]">
+        <span data-i18n="hero_a"></span><br><span class="gradient-text" data-i18n="hero_b"></span>
+      </h1>
+      <p class="mt-6 text-base sm:text-lg muted max-w-2xl mx-auto leading-relaxed" data-i18n="hero_sub"></p>
+      <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+        <a href="#image-compressor" class="btn btn-primary !px-5 !py-3 !text-sm"><i data-lucide="zap" class="w-4 h-4"></i><span data-i18n="hero_cta"></span></a>
+        <a href="#qr-generator" class="btn !px-5 !py-3 !text-sm"><i data-lucide="qr-code" class="w-4 h-4"></i><span data-i18n="nav_qr"></span></a>
+      </div>
+
+      <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
+        <div class="card px-4 py-4 flex items-center gap-3 text-start"><span class="icon-tile !w-10 !h-10 !rounded-xl" style="background:linear-gradient(135deg,#10b981,#059669)"><i data-lucide="cloud-off" class="w-5 h-5"></i></span><div><div class="font-bold text-sm" data-i18n="tr1"></div><div class="text-xs muted" data-i18n="tr1d"></div></div></div>
+        <div class="card px-4 py-4 flex items-center gap-3 text-start"><span class="icon-tile !w-10 !h-10 !rounded-xl" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"><i data-lucide="gauge" class="w-5 h-5"></i></span><div><div class="font-bold text-sm" data-i18n="tr2"></div><div class="text-xs muted" data-i18n="tr2d"></div></div></div>
+        <div class="card px-4 py-4 flex items-center gap-3 text-start"><span class="icon-tile !w-10 !h-10 !rounded-xl" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"><i data-lucide="infinity" class="w-5 h-5"></i></span><div><div class="font-bold text-sm" data-i18n="tr3"></div><div class="text-xs muted" data-i18n="tr3d"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 pb-6">
+    <div class="grid md:grid-cols-3 gap-4">
+      <a href="#image-compressor" class="card tool-card p-6 block">
+        <span class="icon-tile mb-5"><i data-lucide="image-down" class="w-6 h-6"></i></span>
+        <h3 class="font-bold text-lg mb-1.5" data-i18n="nav_img"></h3>
+        <p class="text-sm muted leading-relaxed mb-5" data-i18n="c_img"></p>
+        <span class="text-sm font-semibold text-indigo-400 inline-flex items-center gap-1.5"><span data-i18n="open"></span><i data-lucide="arrow-right" class="w-4 h-4 rtl:rotate-180"></i></span>
+      </a>
+      <a href="#qr-generator" class="card tool-card p-6 block">
+        <span class="icon-tile mb-5" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)"><i data-lucide="qr-code" class="w-6 h-6"></i></span>
+        <h3 class="font-bold text-lg mb-1.5" data-i18n="nav_qr"></h3>
+        <p class="text-sm muted leading-relaxed mb-5" data-i18n="c_qr"></p>
+        <span class="text-sm font-semibold text-indigo-400 inline-flex items-center gap-1.5"><span data-i18n="open"></span><i data-lucide="arrow-right" class="w-4 h-4 rtl:rotate-180"></i></span>
+      </a>
+      <a href="#text-studio" class="card tool-card p-6 block">
+        <span class="icon-tile mb-5" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"><i data-lucide="file-text" class="w-6 h-6"></i></span>
+        <h3 class="font-bold text-lg mb-1.5" data-i18n="nav_text"></h3>
+        <p class="text-sm muted leading-relaxed mb-5" data-i18n="c_text"></p>
+        <span class="text-sm font-semibold text-indigo-400 inline-flex items-center gap-1.5"><span data-i18n="open"></span><i data-lucide="arrow-right" class="w-4 h-4 rtl:rotate-180"></i></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TOOL SHELL ============ -->
+<div id="toolShell" class="hidden max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+  <!-- Leaderboard ad -->
+  <div class="ad h-[64px] sm:h-[90px] max-w-[728px] mx-auto mb-6"><span data-i18n="ad"></span> · 728×90</div>
+</div>
+
+<!-- ============ TOOL 1: IMAGE ============ -->
+<section id="view-image-compressor" class="view">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+    <div class="mb-6">
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3"><span class="icon-tile !w-10 !h-10 !rounded-xl"><i data-lucide="image-down" class="w-5 h-5"></i></span><span data-i18n="nav_img"></span></h2>
+      <p class="muted mt-2 text-sm sm:text-base" data-i18n="img_sub"></p>
+    </div>
+
+    <div class="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <div class="space-y-5 min-w-0">
+        <div class="card p-5 grid sm:grid-cols-3 gap-5">
+          <div>
+            <div class="flex justify-between items-center mb-2"><span class="lbl !mb-0" data-i18n="quality"></span><span id="qVal" class="text-sm font-bold text-indigo-400">80%</span></div>
+            <input type="range" id="qRange" min="10" max="100" step="1" value="80" aria-label="Quality">
+          </div>
+          <div>
+            <span class="lbl" data-i18n="format"></span>
+            <div class="seg" id="fmtSeg">
+              <button type="button" data-val="image/webp" class="on">WebP</button>
+              <button type="button" data-val="image/jpeg">JPEG</button>
+              <button type="button" data-val="image/png">PNG</button>
+            </div>
+          </div>
+          <div>
+            <span class="lbl" data-i18n="maxw"></span>
+            <div class="seg" id="wSeg">
+              <button type="button" data-val="0" class="on" data-i18n="orig"></button>
+              <button type="button" data-val="1920">1920</button>
+              <button type="button" data-val="1280">1280</button>
+              <button type="button" data-val="800">800</button>
+            </div>
+          </div>
+          <p id="pngNote" class="sm:col-span-3 text-xs muted flex items-start gap-2 hidden"><i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i><span data-i18n="png_note"></span></p>
+        </div>
+
+        <div id="dropzone" class="dropzone p-8 sm:p-12 text-center" tabindex="0" role="button" aria-label="Upload images">
+          <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+          <div class="mx-auto w-16 h-16 rounded-2xl grid place-items-center mb-4 icon-tile !w-16 !h-16"><i data-lucide="upload-cloud" class="w-8 h-8"></i></div>
+          <div class="text-lg font-bold" data-i18n="drop_t"></div>
+          <div class="text-sm muted mt-1.5"><span data-i18n="drop_s"></span> <kbd class="px-1.5 py-0.5 rounded-md border hairline text-xs bg-[var(--field)]">Ctrl+V</kbd></div>
+          <div class="text-xs muted mt-3 opacity-80" data-i18n="drop_f"></div>
+        </div>
+
+        <div id="imgSummary" class="card p-4 hidden flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <div><span class="muted" data-i18n="files"></span>: <b id="sumCount">0</b></div>
+            <div><span class="muted" data-i18n="orig"></span>: <b id="sumOrig">0</b></div>
+            <div><span class="muted" data-i18n="after"></span>: <b id="sumNew">0</b></div>
+            <div><span class="muted" data-i18n="total_saved"></span>: <b id="sumSaved" class="text-emerald-400">0%</b></div>
+          </div>
+          <div class="flex gap-2">
+            <button id="clearImgs" class="btn"><i data-lucide="trash-2" class="w-4 h-4"></i><span data-i18n="btn_clear"></span></button>
+            <button id="zipBtn" class="btn btn-primary"><i data-lucide="archive" class="w-4 h-4"></i><span data-i18n="btn_zip"></span></button>
+          </div>
+        </div>
+
+        <ul id="imgList" class="space-y-3"></ul>
+      </div>
+
+      <aside class="space-y-5 lg:sticky lg:top-28">
+        <div class="ad h-[250px]"><span data-i18n="ad"></span> · 300×250</div>
+        <div class="card p-5 text-sm muted leading-relaxed"><div class="font-bold text-[var(--text)] mb-2 flex items-center gap-2"><i data-lucide="lightbulb" class="w-4 h-4 text-amber-400"></i><span data-i18n="tip_t"></span></div><span data-i18n="tip_img"></span></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TOOL 2: QR ============ -->
+<section id="view-qr-generator" class="view">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+    <div class="mb-6">
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3"><span class="icon-tile !w-10 !h-10 !rounded-xl" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)"><i data-lucide="qr-code" class="w-5 h-5"></i></span><span data-i18n="nav_qr"></span></h2>
+      <p class="muted mt-2 text-sm sm:text-base" data-i18n="qr_sub"></p>
+    </div>
+
+    <div class="grid lg:grid-cols-[1fr_340px] gap-6 items-start">
+      <div class="space-y-5 min-w-0">
+        <div class="card p-5">
+          <div class="flex gap-1 overflow-x-auto noscroll mb-5" id="qrTabs" role="tablist">
+            <button class="tab on" data-qt="url" role="tab"><i data-lucide="link" class="w-4 h-4"></i><span data-i18n="qt_url"></span></button>
+            <button class="tab" data-qt="wifi" role="tab"><i data-lucide="wifi" class="w-4 h-4"></i><span data-i18n="qt_wifi"></span></button>
+            <button class="tab" data-qt="wa" role="tab"><i data-lucide="message-circle" class="w-4 h-4"></i><span data-i18n="qt_wa"></span></button>
+            <button class="tab" data-qt="text" role="tab"><i data-lucide="type" class="w-4 h-4"></i><span data-i18n="qt_text"></span></button>
+          </div>
+
+          <div data-qp="url"><label class="lbl" for="qUrl" data-i18n="l_url"></label><input id="qUrl" class="input" type="text" inputmode="url" data-i18n-ph="ph_url" placeholder="https://example.com"></div>
+          <div data-qp="wifi" class="hidden grid sm:grid-cols-2 gap-4">
+            <div><label class="lbl" for="qSsid" data-i18n="l_ssid"></label><input id="qSsid" class="input" type="text" data-i18n-ph="ph_ssid" autocomplete="off"></div>
+            <div><label class="lbl" for="qPass" data-i18n="l_pass"></label><input id="qPass" class="input" type="text" autocomplete="off"></div>
+            <div class="sm:col-span-2"><label class="lbl" for="qEnc" data-i18n="l_enc"></label>
+              <select id="qEnc" class="input"><option value="WPA">WPA/WPA2/WPA3</option><option value="WEP">WEP</option><option value="nopass" data-i18n="enc_none"></option></select></div>
+          </div>
+          <div data-qp="wa" class="hidden grid gap-4">
+            <div><label class="lbl" for="qPhone" data-i18n="l_phone"></label><input id="qPhone" class="input" type="tel" inputmode="tel" data-i18n-ph="ph_phone" placeholder="+971 50 123 4567"></div>
+            <div><label class="lbl" for="qMsg" data-i18n="l_msg"></label><textarea id="qMsg" rows="3" class="input" data-i18n-ph="ph_msg"></textarea></div>
+          </div>
+          <div data-qp="text" class="hidden"><label class="lbl" for="qText" data-i18n="l_text"></label><textarea id="qText" rows="4" class="input" data-i18n-ph="ph_qrtext"></textarea></div>
+        </div>
+
+        <div class="card p-5">
+          <h3 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="palette" class="w-4 h-4 text-pink-400"></i><span data-i18n="s_title"></span></h3>
+          <div class="grid sm:grid-cols-2 gap-5">
+            <div class="flex items-end gap-4">
+              <div><span class="lbl" data-i18n="fg"></span><input type="color" id="qFg" value="#111827"></div>
+              <div><span class="lbl" data-i18n="bg"></span><input type="color" id="qBg" value="#ffffff"></div>
+              <button type="button" id="qSwap" class="btn btn-sm mb-1" aria-label="Swap colors"><i data-lucide="arrow-left-right" class="w-4 h-4"></i></button>
+            </div>
+            <div><span class="lbl" data-i18n="dots_style"></span>
+              <div class="seg" id="qDots"><button type="button" data-val="square" class="on" data-i18n="d_square"></button><button type="button" data-val="rounded" data-i18n="d_rounded"></button><button type="button" data-val="dots" data-i18n="d_dots"></button></div></div>
+            <div><label class="lbl" for="qEcl" data-i18n="ecl"></label>
+              <select id="qEcl" class="input"><option value="L">L · 7%</option><option value="M" selected>M · 15%</option><option value="Q">Q · 25%</option><option value="H">H · 30%</option></select>
+              <p id="eclHint" class="text-xs text-amber-400 mt-1.5 hidden" data-i18n="logo_auto"></p></div>
+            <div><span class="lbl" data-i18n="logo"></span>
+              <div class="flex gap-2">
+                <input type="file" id="logoInput" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="hidden">
+                <button type="button" id="logoBtn" class="btn flex-1"><i data-lucide="image-plus" class="w-4 h-4"></i><span data-i18n="logo_up"></span></button>
+                <button type="button" id="logoRm" class="btn hidden" aria-label="Remove logo"><i data-lucide="x" class="w-4 h-4"></i></button>
+              </div>
+              <div id="logoName" class="text-xs muted mt-1.5 truncate"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="space-y-5 lg:sticky lg:top-28">
+        <div class="card p-5">
+          <div class="qr-stage mx-auto" style="max-width:320px">
+            <div id="qrMount" style="width:100%;display:grid;place-items:center"></div>
+            <div id="qrVeil" class="veil"><span data-i18n="qr_wait"></span></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mt-4">
+            <button id="dlPng" class="btn btn-primary" disabled><i data-lucide="download" class="w-4 h-4"></i><span data-i18n="dl_png"></span></button>
+            <button id="dlSvg" class="btn" disabled><i data-lucide="file-code" class="w-4 h-4"></i><span data-i18n="dl_svg"></span></button>
+          </div>
+        </div>
+        <div class="ad h-[250px]"><span data-i18n="ad"></span> · 300×250</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TOOL 3: TEXT ============ -->
+<section id="view-text-studio" class="view">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+    <div class="mb-6">
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3"><span class="icon-tile !w-10 !h-10 !rounded-xl" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"><i data-lucide="file-text" class="w-5 h-5"></i></span><span data-i18n="nav_text"></span></h2>
+      <p class="muted mt-2 text-sm sm:text-base" data-i18n="tx_sub"></p>
+    </div>
+
+    <div class="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <div class="space-y-5 min-w-0">
+        <div class="card p-3 sm:p-4">
+          <textarea id="editor" class="input !border-0 !bg-transparent !shadow-none !text-base leading-relaxed" rows="14" style="min-height:320px" data-i18n-ph="ph_editor" spellcheck="true"></textarea>
+        </div>
+
+        <div class="card p-5">
+          <h3 class="lbl" data-i18n="tf_h"></h3>
+          <div class="flex flex-wrap gap-2" id="tfBar">
+            <button class="btn btn-sm" data-tf="clean"><i data-lucide="eraser" class="w-4 h-4"></i><span data-i18n="tf_clean"></span></button>
+            <button class="btn btn-sm" data-tf="title"><i data-lucide="heading" class="w-4 h-4"></i><span data-i18n="tf_tcase"></span></button>
+            <button class="btn btn-sm" data-tf="upper"><i data-lucide="arrow-up-a-z" class="w-4 h-4"></i><span data-i18n="tf_upper"></span></button>
+            <button class="btn btn-sm" data-tf="lower"><i data-lucide="arrow-down-a-z" class="w-4 h-4"></i><span data-i18n="tf_lower"></span></button>
+            <button class="btn btn-sm" data-tf="sentence"><i data-lucide="case-sensitive" class="w-4 h-4"></i><span data-i18n="tf_scase"></span></button>
+            <button class="btn btn-sm" data-tf="dedupe"><i data-lucide="copy-minus" class="w-4 h-4"></i><span data-i18n="tf_dedupe"></span></button>
+            <button class="btn btn-sm" data-tf="sort"><i data-lucide="list-ordered" class="w-4 h-4"></i><span data-i18n="tf_sort"></span></button>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t hairline">
+            <button class="btn btn-sm" id="txUndo"><i data-lucide="undo-2" class="w-4 h-4"></i><span data-i18n="tf_undo"></span></button>
+            <button class="btn btn-sm" id="txCopy"><i data-lucide="clipboard-copy" class="w-4 h-4"></i><span data-i18n="tf_copy"></span></button>
+            <button class="btn btn-sm" id="txClear"><i data-lucide="trash-2" class="w-4 h-4"></i><span data-i18n="tf_clear"></span></button>
+            <button class="btn btn-sm btn-primary ms-auto" id="txExport"><i data-lucide="file-down" class="w-4 h-4"></i><span data-i18n="tf_export"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="space-y-5 lg:sticky lg:top-28">
+        <div class="card p-5">
+          <div class="grid grid-cols-2 gap-3" id="stats">
+            <div class="rounded-xl p-3 bg-[var(--field)]"><div class="text-2xl font-extrabold" id="stWords">0</div><div class="text-[11px] muted font-semibold" data-i18n="st_words"></div></div>
+            <div class="rounded-xl p-3 bg-[var(--field)]"><div class="text-2xl font-extrabold" id="stChars">0</div><div class="text-[11px] muted font-semibold" data-i18n="st_chars"></div></div>
+            <div class="rounded-xl p-3 bg-[var(--field)]"><div class="text-2xl font-extrabold" id="stCharsNs">0</div><div class="text-[11px] muted font-semibold" data-i18n="st_charsns"></div></div>
+            <div class="rounded-xl p-3 bg-[var(--field)]"><div class="text-2xl font-extrabold" id="stSent">0</div><div class="text-[11px] muted font-semibold" data-i18n="st_sent"></div></div>
+            <div class="rounded-xl p-3 bg-[var(--field)]"><div class="text-2xl font-extrabold" id="stPara">0</div><div class="text-[11px] muted font-semibold" data-i18n="st_para"></div></div>
+            <div class="rounded-xl p-3 bg-[var(--field)]"><div class="text-lg font-extrabold leading-8" id="stRead">0</div><div class="text-[11px] muted font-semibold" data-i18n="st_read"></div></div>
+            <div class="rounded-xl p-3 bg-[var(--field)] col-span-2"><div class="text-lg font-extrabold leading-8" id="stSpeak">0</div><div class="text-[11px] muted font-semibold" data-i18n="st_speak"></div></div>
+          </div>
+        </div>
+        <div class="card p-5">
+          <h3 class="font-bold text-sm mb-3 flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-cyan-400"></i><span data-i18n="kw"></span></h3>
+          <ol id="kwList" class="space-y-3 text-sm"></ol>
+        </div>
+        <div class="ad h-[250px]"><span data-i18n="ad"></span> · 300×250</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="max-w-3xl mx-auto px-4 sm:px-6 py-16 faq" id="faq">
+  <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-center mb-8" data-i18n="faq_h"></h2>
+  <div class="space-y-3">
+    <details><summary><span data-i18n="f1q"></span><i data-lucide="chevron-down" class="chev w-5 h-5 muted"></i></summary><div class="ans" data-i18n="f1a"></div></details>
+    <details><summary><span data-i18n="f2q"></span><i data-lucide="chevron-down" class="chev w-5 h-5 muted"></i></summary><div class="ans" data-i18n="f2a"></div></details>
+    <details><summary><span data-i18n="f3q"></span><i data-lucide="chevron-down" class="chev w-5 h-5 muted"></i></summary><div class="ans" data-i18n="f3a"></div></details>
+    <details><summary><span data-i18n="f4q"></span><i data-lucide="chevron-down" class="chev w-5 h-5 muted"></i></summary><div class="ans" data-i18n="f4a"></div></details>
+    <details><summary><span data-i18n="f5q"></span><i data-lucide="chevron-down" class="chev w-5 h-5 muted"></i></summary><div class="ans" data-i18n="f5a"></div></details>
+  </div>
+</section>
+</main>
+
+<footer class="border-t hairline">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm muted">
+    <div class="flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i><span>© <span id="yr"></span> NexaTools Pro</span></div>
+    <div class="flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i><span data-i18n="foot"></span></div>
+  </div>
+</footer>
+
+<div id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* =====================================================================
+   i18n DICTIONARY — EN, ES, FR, RU, TR, JA, AR
+   ===================================================================== */
+const I18N = {
+en: {
+  title:"NexaTools Pro — Private Image Compressor, QR Designer & Text Studio",
+  badge:"100% Private • Local Browser Processing", nav_home:"Home", nav_img:"Image Studio", nav_qr:"QR Designer", nav_text:"Text Studio",
+  theme:"Toggle theme", lang:"Language",
+  hero_a:"Every utility you need.", hero_b:"Zero uploads. Zero limits.",
+  hero_sub:"Compress images in bulk, design branded QR codes and analyze text — all running locally in your browser. Your files never touch a server.",
+  hero_cta:"Start compressing",
+  tr1:"Zero Server Uploads", tr1d:"Files stay on your device", tr2:"Instant Processing", tr2d:"Powered by your browser", tr3:"Unlimited & Free", tr3d:"No sign-up, no watermark",
+  c_img:"Bulk-compress JPG, PNG and WebP with resize options and one-click ZIP download.",
+  c_qr:"Create styled QR codes for links, Wi-Fi, WhatsApp and text — with your own logo.",
+  c_text:"Live word count, reading time, keyword density and one-click text transformations.",
+  open:"Open tool", ad:"Advertisement",
+  img_sub:"Drop, paste or browse images. Tune quality, format and size — then download individually or as one ZIP.",
+  quality:"Quality", format:"Target format", maxw:"Max width", orig:"Original", after:"After",
+  png_note:"PNG is lossless, so the quality slider has little effect. Use WebP or JPEG for the biggest savings, or resize with Max width.",
+  drop_t:"Drop images here", drop_s:"or click to browse · paste with", drop_f:"JPG, PNG, WebP, GIF, AVIF · bulk supported",
+  files:"Files", total_saved:"Saved", btn_clear:"Clear all", btn_zip:"Download all as ZIP", btn_dl:"Download", remove:"Remove",
+  s_queued:"Queued", s_processing:"Compressing…", s_done:"Done", s_failed:"Failed",
+  tip_t:"Pro tip", tip_img:"WebP at 75–80% quality usually cuts file size by 60–90% with no visible loss. Changing a setting re-compresses every image instantly.",
+  qr_sub:"Design a scannable QR code with custom colors, dot styles and your own center logo. Export in high-res PNG or SVG.",
+  qt_url:"Website URL", qt_wifi:"Wi-Fi", qt_wa:"WhatsApp", qt_text:"Plain text",
+  l_url:"Website address", l_ssid:"Network name (SSID)", l_pass:"Password", l_enc:"Security", enc_none:"None (open network)",
+  l_phone:"Phone number (with country code)", l_msg:"Pre-filled message (optional)", l_text:"Your text",
+  ph_url:"https://example.com", ph_ssid:"My Home Wi-Fi", ph_phone:"+971 50 123 4567", ph_msg:"Hello! I'd like to know more…", ph_qrtext:"Type anything to encode…",
+  s_title:"Style & branding", fg:"Foreground", bg:"Background", dots_style:"Dot style", d_square:"Square", d_rounded:"Rounded", d_dots:"Dots",
+  ecl:"Error correction", logo:"Center logo", logo_up:"Upload logo", logo_auto:"Raised to H automatically so the logo stays scannable.",
+  qr_wait:"Enter content to generate your QR code", dl_png:"PNG (hi-res)", dl_svg:"SVG",
+  tx_sub:"A distraction-free editor with live stats, keyword analysis and one-click cleanup for AI prompts, articles and Markdown.",
+  ph_editor:"Paste or type your text here…", st_words:"Words", st_chars:"Characters", st_charsns:"Chars (no spaces)", st_sent:"Sentences", st_para:"Paragraphs", st_read:"Reading time", st_speak:"Speaking time",
+  kw:"Top keywords", kw_empty:"Start typing to see keyword density.", u_min:"min", u_sec:"sec",
+  tf_h:"Transformations", tf_clean:"Clean formatting", tf_tcase:"Smart Title Case", tf_upper:"UPPERCASE", tf_lower:"lowercase", tf_scase:"Sentence case",
+  tf_dedupe:"Remove duplicate lines", tf_sort:"Sort A–Z", tf_undo:"Undo", tf_copy:"Copy", tf_clear:"Clear", tf_export:"Export .TXT",
+  faq_h:"Frequently asked questions",
+  f1q:"Are my files uploaded to a server?", f1a:"No. Everything runs locally in your browser using JavaScript and the Canvas API. Your images, text and QR data never leave your device.",
+  f2q:"Is NexaTools Pro really free?", f2a:"Yes. There are no limits, no sign-ups and no watermarks. Process as many files as you like.",
+  f3q:"Which image formats are supported?", f3a:"Import JPG, PNG, WebP, GIF, BMP and AVIF (depending on your browser) and export to WebP, JPEG or PNG. PNG is lossless, so the quality slider mainly affects WebP and JPEG.",
+  f4q:"Can I add my logo to a QR code?", f4a:"Yes. Upload a logo in the QR designer. Error correction is raised to High automatically so the code stays scannable.",
+  f5q:"Does it work on a slow connection?", f5a:"All processing is local, so it stays fast. Only the page libraries are fetched from CDNs on your first visit.",
+  foot:"Everything is processed locally in your browser.",
+  t_added:"{n} image(s) added", t_notimg:"Only image files are supported", t_zip:"ZIP ready — download started", t_zipfail:"Could not create the ZIP file", t_zipnone:"No compressed images to download yet",
+  t_saved:"Downloaded {name}", t_cleared:"All images cleared", t_removed:"Image removed", t_procfail:"Could not process {name}",
+  t_qrok:"QR code downloaded", t_qrfail:"Could not generate the QR code. The content may be too long.", t_qrneed:"Enter some content first", t_logook:"Logo added", t_logobad:"Please choose a PNG, JPG, SVG or WebP image",
+  t_copied:"Copied to clipboard", t_copyfail:"Copy failed — select the text manually", t_done:"Applied", t_empty:"Nothing to transform yet", t_exp:"Text exported", t_undo_none:"Nothing to undo",
+  t_lang:"Language: English", t_generic:"Something went wrong. Please try again.", t_libs:"A required library failed to load. Check your connection."
+},
+es: {
+  title:"NexaTools Pro — Compresor de imágenes, diseñador QR y estudio de texto privados",
+  badge:"100% Privado • Procesamiento local en el navegador", nav_home:"Inicio", nav_img:"Estudio de imágenes", nav_qr:"Diseñador QR", nav_text:"Estudio de texto",
+  theme:"Cambiar tema", lang:"Idioma",
+  hero_a:"Todas las utilidades que necesitas.", hero_b:"Sin subidas. Sin límites.",
+  hero_sub:"Comprime imágenes en lote, diseña códigos QR de marca y analiza texto, todo en tu navegador. Tus archivos nunca tocan un servidor.",
+  hero_cta:"Empezar a comprimir",
+  tr1:"Cero subidas a servidores", tr1d:"Los archivos se quedan en tu dispositivo", tr2:"Procesamiento instantáneo", tr2d:"Impulsado por tu navegador", tr3:"Ilimitado y gratis", tr3d:"Sin registro ni marca de agua",
+  c_img:"Comprime JPG, PNG y WebP en lote, con redimensionado y descarga ZIP en un clic.",
+  c_qr:"Crea QR con estilo para enlaces, Wi-Fi, WhatsApp y texto, con tu propio logo.",
+  c_text:"Recuento de palabras, tiempo de lectura, densidad de palabras clave y transformaciones en un clic.",
+  open:"Abrir herramienta", ad:"Publicidad",
+  img_sub:"Suelta, pega o busca imágenes. Ajusta calidad, formato y tamaño; descarga una a una o en un ZIP.",
+  quality:"Calidad", format:"Formato de destino", maxw:"Ancho máximo", orig:"Original", after:"Después",
+  png_note:"PNG no pierde calidad, por lo que el control de calidad apenas influye. Usa WebP o JPEG para ahorrar más, o reduce el ancho máximo.",
+  drop_t:"Suelta las imágenes aquí", drop_s:"o haz clic para buscar · pega con", drop_f:"JPG, PNG, WebP, GIF, AVIF · compatible con lotes",
+  files:"Archivos", total_saved:"Ahorro", btn_clear:"Borrar todo", btn_zip:"Descargar todo en ZIP", btn_dl:"Descargar", remove:"Quitar",
+  s_queued:"En cola", s_processing:"Comprimiendo…", s_done:"Listo", s_failed:"Error",
+  tip_t:"Consejo", tip_img:"WebP al 75–80 % de calidad suele reducir el peso entre un 60 y un 90 % sin pérdida visible. Al cambiar un ajuste se recomprimen todas las imágenes.",
+  qr_sub:"Diseña un QR escaneable con colores, estilos de punto y tu logo central. Exporta en PNG de alta resolución o SVG.",
+  qt_url:"URL web", qt_wifi:"Wi-Fi", qt_wa:"WhatsApp", qt_text:"Texto simple",
+  l_url:"Dirección web", l_ssid:"Nombre de red (SSID)", l_pass:"Contraseña", l_enc:"Seguridad", enc_none:"Ninguna (red abierta)",
+  l_phone:"Teléfono (con prefijo del país)", l_msg:"Mensaje predefinido (opcional)", l_text:"Tu texto",
+  ph_url:"https://ejemplo.com", ph_ssid:"Mi Wi-Fi de casa", ph_phone:"+34 600 123 456", ph_msg:"¡Hola! Me gustaría saber más…", ph_qrtext:"Escribe lo que quieras codificar…",
+  s_title:"Estilo y marca", fg:"Primer plano", bg:"Fondo", dots_style:"Estilo de puntos", d_square:"Cuadrado", d_rounded:"Redondeado", d_dots:"Puntos",
+  ecl:"Corrección de errores", logo:"Logo central", logo_up:"Subir logo", logo_auto:"Se ajusta a H automáticamente para que el logo no impida escanear.",
+  qr_wait:"Introduce contenido para generar tu QR", dl_png:"PNG (alta res.)", dl_svg:"SVG",
+  tx_sub:"Un editor sin distracciones con estadísticas en vivo, análisis de palabras clave y limpieza en un clic para prompts de IA, artículos y Markdown.",
+  ph_editor:"Pega o escribe tu texto aquí…", st_words:"Palabras", st_chars:"Caracteres", st_charsns:"Car. (sin espacios)", st_sent:"Frases", st_para:"Párrafos", st_read:"Tiempo de lectura", st_speak:"Tiempo de locución",
+  kw:"Palabras clave principales", kw_empty:"Empieza a escribir para ver la densidad.", u_min:"min", u_sec:"s",
+  tf_h:"Transformaciones", tf_clean:"Limpiar formato", tf_tcase:"Título inteligente", tf_upper:"MAYÚSCULAS", tf_lower:"minúsculas", tf_scase:"Tipo oración",
+  tf_dedupe:"Quitar líneas duplicadas", tf_sort:"Ordenar A–Z", tf_undo:"Deshacer", tf_copy:"Copiar", tf_clear:"Vaciar", tf_export:"Exportar .TXT",
+  faq_h:"Preguntas frecuentes",
+  f1q:"¿Se suben mis archivos a un servidor?", f1a:"No. Todo se ejecuta localmente en tu navegador con JavaScript y la API Canvas. Tus imágenes, textos y datos QR nunca salen de tu dispositivo.",
+  f2q:"¿NexaTools Pro es realmente gratis?", f2a:"Sí. Sin límites, sin registros y sin marcas de agua. Procesa tantos archivos como quieras.",
+  f3q:"¿Qué formatos de imagen admite?", f3a:"Importa JPG, PNG, WebP, GIF, BMP y AVIF (según tu navegador) y exporta a WebP, JPEG o PNG. PNG no pierde calidad, así que el control afecta sobre todo a WebP y JPEG.",
+  f4q:"¿Puedo añadir mi logo a un código QR?", f4a:"Sí. Sube un logo en el diseñador QR. La corrección de errores sube a Alta automáticamente para que el código siga siendo legible.",
+  f5q:"¿Funciona con una conexión lenta?", f5a:"Todo el procesamiento es local, así que es rápido. Solo las librerías de la página se descargan de CDN en tu primera visita.",
+  foot:"Todo se procesa localmente en tu navegador.",
+  t_added:"{n} imagen(es) añadida(s)", t_notimg:"Solo se admiten archivos de imagen", t_zip:"ZIP listo: descarga iniciada", t_zipfail:"No se pudo crear el ZIP", t_zipnone:"Aún no hay imágenes comprimidas para descargar",
+  t_saved:"Descargado {name}", t_cleared:"Imágenes borradas", t_removed:"Imagen eliminada", t_procfail:"No se pudo procesar {name}",
+  t_qrok:"QR descargado", t_qrfail:"No se pudo generar el QR. Puede que el contenido sea demasiado largo.", t_qrneed:"Introduce contenido primero", t_logook:"Logo añadido", t_logobad:"Elige una imagen PNG, JPG, SVG o WebP",
+  t_copied:"Copiado al portapapeles", t_copyfail:"No se pudo copiar; selecciona el texto manualmente", t_done:"Aplicado", t_empty:"Aún no hay nada que transformar", t_exp:"Texto exportado", t_undo_none:"Nada que deshacer",
+  t_lang:"Idioma: Español", t_generic:"Algo salió mal. Inténtalo de nuevo.", t_libs:"No se pudo cargar una librería necesaria. Revisa tu conexión."
+},
+fr: {
+  title:"NexaTools Pro — Compresseur d'images, designer QR et studio de texte privés",
+  badge:"100 % Privé • Traitement local dans le navigateur", nav_home:"Accueil", nav_img:"Studio d'images", nav_qr:"Designer QR", nav_text:"Studio de texte",
+  theme:"Changer de thème", lang:"Langue",
+  hero_a:"Tous les utilitaires dont vous avez besoin.", hero_b:"Zéro envoi. Zéro limite.",
+  hero_sub:"Compressez des images en lot, créez des QR codes personnalisés et analysez vos textes, le tout dans votre navigateur. Vos fichiers ne touchent jamais un serveur.",
+  hero_cta:"Commencer la compression",
+  tr1:"Aucun envoi serveur", tr1d:"Les fichiers restent sur votre appareil", tr2:"Traitement instantané", tr2d:"Propulsé par votre navigateur", tr3:"Illimité et gratuit", tr3d:"Sans inscription ni filigrane",
+  c_img:"Compressez JPG, PNG et WebP en lot, avec redimensionnement et téléchargement ZIP en un clic.",
+  c_qr:"Créez des QR codes stylisés pour liens, Wi-Fi, WhatsApp et texte, avec votre logo.",
+  c_text:"Nombre de mots, temps de lecture, densité de mots-clés et transformations en un clic.",
+  open:"Ouvrir l'outil", ad:"Publicité",
+  img_sub:"Déposez, collez ou parcourez des images. Réglez qualité, format et taille, puis téléchargez une à une ou en ZIP.",
+  quality:"Qualité", format:"Format cible", maxw:"Largeur max.", orig:"Original", after:"Après",
+  png_note:"Le PNG est sans perte : le curseur de qualité a peu d'effet. Utilisez WebP ou JPEG pour gagner le plus, ou réduisez la largeur max.",
+  drop_t:"Déposez vos images ici", drop_s:"ou cliquez pour parcourir · collez avec", drop_f:"JPG, PNG, WebP, GIF, AVIF · traitement par lot",
+  files:"Fichiers", total_saved:"Gain", btn_clear:"Tout effacer", btn_zip:"Tout télécharger en ZIP", btn_dl:"Télécharger", remove:"Retirer",
+  s_queued:"En attente", s_processing:"Compression…", s_done:"Terminé", s_failed:"Échec",
+  tip_t:"Astuce", tip_img:"Le WebP à 75–80 % réduit souvent le poids de 60 à 90 % sans perte visible. Modifier un réglage recompresse toutes les images.",
+  qr_sub:"Concevez un QR code lisible avec couleurs, styles de points et logo central. Export en PNG haute résolution ou SVG.",
+  qt_url:"URL du site", qt_wifi:"Wi-Fi", qt_wa:"WhatsApp", qt_text:"Texte brut",
+  l_url:"Adresse du site", l_ssid:"Nom du réseau (SSID)", l_pass:"Mot de passe", l_enc:"Sécurité", enc_none:"Aucune (réseau ouvert)",
+  l_phone:"Numéro (avec indicatif)", l_msg:"Message prérempli (facultatif)", l_text:"Votre texte",
+  ph_url:"https://exemple.com", ph_ssid:"Mon Wi-Fi", ph_phone:"+33 6 12 34 56 78", ph_msg:"Bonjour ! J'aimerais en savoir plus…", ph_qrtext:"Saisissez ce que vous voulez encoder…",
+  s_title:"Style et marque", fg:"Premier plan", bg:"Arrière-plan", dots_style:"Style des points", d_square:"Carré", d_rounded:"Arrondi", d_dots:"Points",
+  ecl:"Correction d'erreurs", logo:"Logo central", logo_up:"Importer un logo", logo_auto:"Passé automatiquement en H pour que le logo reste lisible.",
+  qr_wait:"Saisissez un contenu pour générer votre QR code", dl_png:"PNG (haute rés.)", dl_svg:"SVG",
+  tx_sub:"Un éditeur sans distraction avec statistiques en direct, analyse de mots-clés et nettoyage en un clic pour prompts IA, articles et Markdown.",
+  ph_editor:"Collez ou saisissez votre texte ici…", st_words:"Mots", st_chars:"Caractères", st_charsns:"Car. (sans espaces)", st_sent:"Phrases", st_para:"Paragraphes", st_read:"Temps de lecture", st_speak:"Temps de parole",
+  kw:"Mots-clés principaux", kw_empty:"Commencez à écrire pour voir la densité.", u_min:"min", u_sec:"s",
+  tf_h:"Transformations", tf_clean:"Nettoyer la mise en forme", tf_tcase:"Casse titre intelligente", tf_upper:"MAJUSCULES", tf_lower:"minuscules", tf_scase:"Casse phrase",
+  tf_dedupe:"Supprimer les doublons", tf_sort:"Trier A–Z", tf_undo:"Annuler", tf_copy:"Copier", tf_clear:"Vider", tf_export:"Exporter .TXT",
+  faq_h:"Questions fréquentes",
+  f1q:"Mes fichiers sont-ils envoyés à un serveur ?", f1a:"Non. Tout s'exécute localement dans votre navigateur avec JavaScript et l'API Canvas. Vos images, textes et données QR ne quittent jamais votre appareil.",
+  f2q:"NexaTools Pro est-il vraiment gratuit ?", f2a:"Oui. Aucune limite, aucune inscription, aucun filigrane. Traitez autant de fichiers que vous voulez.",
+  f3q:"Quels formats d'image sont pris en charge ?", f3a:"Importez JPG, PNG, WebP, GIF, BMP et AVIF (selon votre navigateur) et exportez en WebP, JPEG ou PNG. Le PNG est sans perte, le curseur agit donc surtout sur WebP et JPEG.",
+  f4q:"Puis-je ajouter mon logo à un QR code ?", f4a:"Oui. Importez un logo dans le designer QR. La correction d'erreurs passe automatiquement à Élevée pour que le code reste lisible.",
+  f5q:"Cela fonctionne-t-il avec une connexion lente ?", f5a:"Tout le traitement est local, donc rapide. Seules les bibliothèques de la page sont chargées depuis des CDN à la première visite.",
+  foot:"Tout est traité localement dans votre navigateur.",
+  t_added:"{n} image(s) ajoutée(s)", t_notimg:"Seuls les fichiers image sont acceptés", t_zip:"ZIP prêt : téléchargement lancé", t_zipfail:"Impossible de créer le ZIP", t_zipnone:"Aucune image compressée à télécharger",
+  t_saved:"{name} téléchargé", t_cleared:"Images effacées", t_removed:"Image retirée", t_procfail:"Impossible de traiter {name}",
+  t_qrok:"QR code téléchargé", t_qrfail:"Impossible de générer le QR code. Le contenu est peut-être trop long.", t_qrneed:"Saisissez d'abord un contenu", t_logook:"Logo ajouté", t_logobad:"Choisissez une image PNG, JPG, SVG ou WebP",
+  t_copied:"Copié dans le presse-papiers", t_copyfail:"Échec de la copie : sélectionnez le texte manuellement", t_done:"Appliqué", t_empty:"Rien à transformer pour l'instant", t_exp:"Texte exporté", t_undo_none:"Rien à annuler",
+  t_lang:"Langue : Français", t_generic:"Une erreur est survenue. Veuillez réessayer.", t_libs:"Une bibliothèque requise n'a pas pu se charger. Vérifiez votre connexion."
+},
+ru: {
+  title:"NexaTools Pro — приватный сжиматель изображений, QR-дизайнер и текстовая студия",
+  badge:"100% приватно • Обработка в браузере", nav_home:"Главная", nav_img:"Студия изображений", nav_qr:"QR-дизайнер", nav_text:"Текстовая студия",
+  theme:"Сменить тему", lang:"Язык",
+  hero_a:"Все нужные утилиты.", hero_b:"Без загрузок. Без лимитов.",
+  hero_sub:"Сжимайте изображения пакетно, создавайте фирменные QR-коды и анализируйте текст — всё прямо в браузере. Ваши файлы не попадают на сервер.",
+  hero_cta:"Начать сжатие",
+  tr1:"Без загрузки на сервер", tr1d:"Файлы остаются на вашем устройстве", tr2:"Мгновенная обработка", tr2d:"Работает на вашем браузере", tr3:"Безлимитно и бесплатно", tr3d:"Без регистрации и водяных знаков",
+  c_img:"Пакетное сжатие JPG, PNG и WebP с изменением размера и скачиванием ZIP в один клик.",
+  c_qr:"Стильные QR-коды для ссылок, Wi-Fi, WhatsApp и текста — с вашим логотипом.",
+  c_text:"Счётчик слов, время чтения, плотность ключевых слов и преобразования в один клик.",
+  open:"Открыть", ad:"Реклама",
+  img_sub:"Перетащите, вставьте или выберите изображения. Настройте качество, формат и размер — и скачайте по одному или ZIP-архивом.",
+  quality:"Качество", format:"Целевой формат", maxw:"Макс. ширина", orig:"Оригинал", after:"После",
+  png_note:"PNG — формат без потерь, поэтому ползунок качества почти не влияет. Для максимальной экономии выберите WebP или JPEG либо уменьшите ширину.",
+  drop_t:"Перетащите изображения сюда", drop_s:"или нажмите для выбора · вставка через", drop_f:"JPG, PNG, WebP, GIF, AVIF · пакетная обработка",
+  files:"Файлов", total_saved:"Экономия", btn_clear:"Очистить всё", btn_zip:"Скачать всё в ZIP", btn_dl:"Скачать", remove:"Удалить",
+  s_queued:"В очереди", s_processing:"Сжатие…", s_done:"Готово", s_failed:"Ошибка",
+  tip_t:"Совет", tip_img:"WebP при качестве 75–80% обычно уменьшает размер на 60–90% без видимых потерь. При смене настроек все изображения пересжимаются сразу.",
+  qr_sub:"Создайте читаемый QR-код со своими цветами, стилем точек и логотипом в центре. Экспорт в PNG высокого разрешения или SVG.",
+  qt_url:"Ссылка", qt_wifi:"Wi-Fi", qt_wa:"WhatsApp", qt_text:"Текст",
+  l_url:"Адрес сайта", l_ssid:"Имя сети (SSID)", l_pass:"Пароль", l_enc:"Защита", enc_none:"Нет (открытая сеть)",
+  l_phone:"Номер телефона (с кодом страны)", l_msg:"Готовое сообщение (необязательно)", l_text:"Ваш текст",
+  ph_url:"https://example.com", ph_ssid:"Домашний Wi-Fi", ph_phone:"+7 900 123 45 67", ph_msg:"Здравствуйте! Хочу узнать подробнее…", ph_qrtext:"Введите текст для кодирования…",
+  s_title:"Стиль и брендинг", fg:"Основной цвет", bg:"Фон", dots_style:"Стиль точек", d_square:"Квадрат", d_rounded:"Скруглённый", d_dots:"Точки",
+  ecl:"Коррекция ошибок", logo:"Логотип в центре", logo_up:"Загрузить логотип", logo_auto:"Автоматически установлен уровень H, чтобы код читался с логотипом.",
+  qr_wait:"Введите данные для создания QR-кода", dl_png:"PNG (высокое разр.)", dl_svg:"SVG",
+  tx_sub:"Редактор без отвлекающих элементов: живая статистика, анализ ключевых слов и быстрая очистка для ИИ-промптов, статей и Markdown.",
+  ph_editor:"Вставьте или введите текст…", st_words:"Слов", st_chars:"Символов", st_charsns:"Символов (без пробелов)", st_sent:"Предложений", st_para:"Абзацев", st_read:"Время чтения", st_speak:"Время речи",
+  kw:"Топ ключевых слов", kw_empty:"Начните вводить текст, чтобы увидеть плотность слов.", u_min:"мин", u_sec:"сек",
+  tf_h:"Преобразования", tf_clean:"Очистить форматирование", tf_tcase:"Умный Заголовок", tf_upper:"ВЕРХНИЙ РЕГИСТР", tf_lower:"нижний регистр", tf_scase:"Как в предложении",
+  tf_dedupe:"Удалить дубли строк", tf_sort:"Сортировать А–Я", tf_undo:"Отменить", tf_copy:"Копировать", tf_clear:"Очистить", tf_export:"Экспорт .TXT",
+  faq_h:"Часто задаваемые вопросы",
+  f1q:"Загружаются ли мои файлы на сервер?", f1a:"Нет. Всё выполняется локально в вашем браузере с помощью JavaScript и Canvas API. Изображения, текст и данные QR не покидают ваше устройство.",
+  f2q:"NexaTools Pro действительно бесплатен?", f2a:"Да. Без лимитов, регистрации и водяных знаков. Обрабатывайте сколько угодно файлов.",
+  f3q:"Какие форматы изображений поддерживаются?", f3a:"Импорт JPG, PNG, WebP, GIF, BMP и AVIF (зависит от браузера), экспорт в WebP, JPEG или PNG. PNG — без потерь, поэтому качество влияет в основном на WebP и JPEG.",
+  f4q:"Можно ли добавить логотип в QR-код?", f4a:"Да. Загрузите логотип в QR-дизайнере. Коррекция ошибок автоматически повышается до высокой, чтобы код оставался читаемым.",
+  f5q:"Работает ли при медленном соединении?", f5a:"Вся обработка локальная, поэтому всё быстро. Только библиотеки страницы загружаются с CDN при первом посещении.",
+  foot:"Всё обрабатывается локально в вашем браузере.",
+  t_added:"Добавлено изображений: {n}", t_notimg:"Поддерживаются только изображения", t_zip:"ZIP готов — загрузка началась", t_zipfail:"Не удалось создать ZIP", t_zipnone:"Пока нет сжатых изображений",
+  t_saved:"Скачано: {name}", t_cleared:"Все изображения удалены", t_removed:"Изображение удалено", t_procfail:"Не удалось обработать {name}",
+  t_qrok:"QR-код скачан", t_qrfail:"Не удалось создать QR-код. Возможно, данных слишком много.", t_qrneed:"Сначала введите данные", t_logook:"Логотип добавлен", t_logobad:"Выберите изображение PNG, JPG, SVG или WebP",
+  t_copied:"Скопировано в буфер обмена", t_copyfail:"Не удалось скопировать — выделите текст вручную", t_done:"Применено", t_empty:"Пока нечего преобразовывать", t_exp:"Текст экспортирован", t_undo_none:"Нечего отменять",
+  t_lang:"Язык: Русский", t_generic:"Что-то пошло не так. Попробуйте ещё раз.", t_libs:"Не удалось загрузить нужную библиотеку. Проверьте соединение."
+},
+tr: {
+  title:"NexaTools Pro — Gizli Görsel Sıkıştırıcı, QR Tasarımcısı ve Metin Stüdyosu",
+  badge:"%100 Gizli • Tarayıcıda Yerel İşleme", nav_home:"Ana sayfa", nav_img:"Görsel Stüdyosu", nav_qr:"QR Tasarımcısı", nav_text:"Metin Stüdyosu",
+  theme:"Temayı değiştir", lang:"Dil",
+  hero_a:"İhtiyacınız olan tüm araçlar.", hero_b:"Sıfır yükleme. Sınırsız.",
+  hero_sub:"Görselleri toplu sıkıştırın, markalı QR kodlar tasarlayın ve metinleri analiz edin — hepsi tarayıcınızda. Dosyalarınız hiçbir sunucuya gitmez.",
+  hero_cta:"Sıkıştırmaya başla",
+  tr1:"Sunucuya yükleme yok", tr1d:"Dosyalar cihazınızda kalır", tr2:"Anında işlem", tr2d:"Tarayıcınızla çalışır", tr3:"Sınırsız ve ücretsiz", tr3d:"Kayıt yok, filigran yok",
+  c_img:"JPG, PNG ve WebP dosyalarını toplu sıkıştırın; yeniden boyutlandırın ve tek tıkla ZIP indirin.",
+  c_qr:"Bağlantı, Wi-Fi, WhatsApp ve metin için kendi logonuzla şık QR kodlar oluşturun.",
+  c_text:"Canlı kelime sayısı, okuma süresi, anahtar kelime yoğunluğu ve tek tıkla dönüşümler.",
+  open:"Aracı aç", ad:"Reklam",
+  img_sub:"Görselleri sürükleyin, yapıştırın veya seçin. Kalite, biçim ve boyutu ayarlayın; tek tek ya da ZIP olarak indirin.",
+  quality:"Kalite", format:"Hedef biçim", maxw:"Maks. genişlik", orig:"Orijinal", after:"Sonra",
+  png_note:"PNG kayıpsızdır, bu yüzden kalite çubuğunun etkisi azdır. En fazla tasarruf için WebP veya JPEG seçin ya da genişliği küçültün.",
+  drop_t:"Görselleri buraya bırakın", drop_s:"veya göz atmak için tıklayın · şununla yapıştırın:", drop_f:"JPG, PNG, WebP, GIF, AVIF · toplu işlem desteklenir",
+  files:"Dosya", total_saved:"Tasarruf", btn_clear:"Tümünü temizle", btn_zip:"Tümünü ZIP olarak indir", btn_dl:"İndir", remove:"Kaldır",
+  s_queued:"Sırada", s_processing:"Sıkıştırılıyor…", s_done:"Tamam", s_failed:"Başarısız",
+  tip_t:"İpucu", tip_img:"%75–80 kalitede WebP, görünür kayıp olmadan dosya boyutunu genellikle %60–90 azaltır. Bir ayarı değiştirmek tüm görselleri anında yeniden sıkıştırır.",
+  qr_sub:"Özel renkler, nokta stilleri ve ortada kendi logonuzla taranabilir bir QR kod tasarlayın. Yüksek çözünürlüklü PNG veya SVG olarak dışa aktarın.",
+  qt_url:"Web sitesi", qt_wifi:"Wi-Fi", qt_wa:"WhatsApp", qt_text:"Düz metin",
+  l_url:"Web adresi", l_ssid:"Ağ adı (SSID)", l_pass:"Şifre", l_enc:"Güvenlik", enc_none:"Yok (açık ağ)",
+  l_phone:"Telefon numarası (ülke koduyla)", l_msg:"Hazır mesaj (isteğe bağlı)", l_text:"Metniniz",
+  ph_url:"https://ornek.com", ph_ssid:"Ev Wi-Fi'm", ph_phone:"+90 532 123 45 67", ph_msg:"Merhaba! Daha fazla bilgi almak istiyorum…", ph_qrtext:"Kodlamak istediğiniz metni yazın…",
+  s_title:"Stil ve marka", fg:"Ön plan", bg:"Arka plan", dots_style:"Nokta stili", d_square:"Kare", d_rounded:"Yuvarlak", d_dots:"Noktalar",
+  ecl:"Hata düzeltme", logo:"Orta logo", logo_up:"Logo yükle", logo_auto:"Logo ile taranabilir kalması için otomatik olarak H seviyesine yükseltildi.",
+  qr_wait:"QR kodunuzu oluşturmak için içerik girin", dl_png:"PNG (yüksek çöz.)", dl_svg:"SVG",
+  tx_sub:"Canlı istatistikler, anahtar kelime analizi ve yapay zekâ istemleri, makaleler ve Markdown için tek tıkla temizleme sunan dikkat dağıtmayan editör.",
+  ph_editor:"Metninizi buraya yapıştırın veya yazın…", st_words:"Kelime", st_chars:"Karakter", st_charsns:"Karakter (boşluksuz)", st_sent:"Cümle", st_para:"Paragraf", st_read:"Okuma süresi", st_speak:"Konuşma süresi",
+  kw:"En çok geçen kelimeler", kw_empty:"Yoğunluğu görmek için yazmaya başlayın.", u_min:"dk", u_sec:"sn",
+  tf_h:"Dönüşümler", tf_clean:"Biçimi temizle", tf_tcase:"Akıllı Başlık Yazımı", tf_upper:"BÜYÜK HARF", tf_lower:"küçük harf", tf_scase:"Cümle düzeni",
+  tf_dedupe:"Yinelenen satırları sil", tf_sort:"A–Z sırala", tf_undo:"Geri al", tf_copy:"Kopyala", tf_clear:"Temizle", tf_export:".TXT olarak aktar",
+  faq_h:"Sık sorulan sorular",
+  f1q:"Dosyalarım bir sunucuya yükleniyor mu?", f1a:"Hayır. Her şey tarayıcınızda JavaScript ve Canvas API ile yerel olarak çalışır. Görselleriniz, metinleriniz ve QR verileriniz cihazınızdan çıkmaz.",
+  f2q:"NexaTools Pro gerçekten ücretsiz mi?", f2a:"Evet. Sınır, kayıt ve filigran yok. İstediğiniz kadar dosya işleyin.",
+  f3q:"Hangi görsel biçimleri destekleniyor?", f3a:"JPG, PNG, WebP, GIF, BMP ve AVIF (tarayıcınıza bağlı) içe aktarın; WebP, JPEG veya PNG olarak dışa aktarın. PNG kayıpsız olduğundan kalite çubuğu çoğunlukla WebP ve JPEG'i etkiler.",
+  f4q:"QR koduma logo ekleyebilir miyim?", f4a:"Evet. QR tasarımcısında bir logo yükleyin. Kodun taranabilir kalması için hata düzeltme otomatik olarak Yüksek seviyeye çıkarılır.",
+  f5q:"Yavaş bağlantıda çalışır mı?", f5a:"Tüm işlemler yerel olduğundan hızlıdır. Yalnızca sayfa kütüphaneleri ilk ziyarette CDN'lerden yüklenir.",
+  foot:"Her şey tarayıcınızda yerel olarak işlenir.",
+  t_added:"{n} görsel eklendi", t_notimg:"Yalnızca görsel dosyaları desteklenir", t_zip:"ZIP hazır — indirme başladı", t_zipfail:"ZIP dosyası oluşturulamadı", t_zipnone:"İndirilecek sıkıştırılmış görsel yok",
+  t_saved:"{name} indirildi", t_cleared:"Tüm görseller temizlendi", t_removed:"Görsel kaldırıldı", t_procfail:"{name} işlenemedi",
+  t_qrok:"QR kod indirildi", t_qrfail:"QR kod oluşturulamadı. İçerik çok uzun olabilir.", t_qrneed:"Önce bir içerik girin", t_logook:"Logo eklendi", t_logobad:"Lütfen PNG, JPG, SVG veya WebP görsel seçin",
+  t_copied:"Panoya kopyalandı", t_copyfail:"Kopyalanamadı — metni elle seçin", t_done:"Uygulandı", t_empty:"Henüz dönüştürülecek bir şey yok", t_exp:"Metin dışa aktarıldı", t_undo_none:"Geri alınacak bir şey yok",
+  t_lang:"Dil: Türkçe", t_generic:"Bir şeyler ters gitti. Lütfen tekrar deneyin.", t_libs:"Gerekli bir kütüphane yüklenemedi. Bağlantınızı kontrol edin."
+},
+ja: {
+  title:"NexaTools Pro — プライベート画像圧縮・QRデザイナー・テキストスタジオ",
+  badge:"100%プライベート • ブラウザ内ローカル処理", nav_home:"ホーム", nav_img:"画像スタジオ", nav_qr:"QRデザイナー", nav_text:"テキストスタジオ",
+  theme:"テーマを切り替え", lang:"言語",
+  hero_a:"必要なツールがすべて揃う。", hero_b:"アップロード不要。制限なし。",
+  hero_sub:"画像の一括圧縮、ブランドQRコードの作成、テキスト分析まで、すべてブラウザ内で完結。ファイルがサーバーに送られることはありません。",
+  hero_cta:"圧縮を始める",
+  tr1:"サーバーへのアップロードなし", tr1d:"ファイルは端末内に保存", tr2:"即時処理", tr2d:"ブラウザの力で高速", tr3:"無制限・無料", tr3d:"登録不要・透かしなし",
+  c_img:"JPG・PNG・WebPを一括圧縮。リサイズやワンクリックのZIPダウンロードに対応。",
+  c_qr:"リンク、Wi-Fi、WhatsApp、テキスト用のおしゃれなQRコードを自分のロゴ入りで作成。",
+  c_text:"リアルタイムの文字数、読了時間、キーワード密度、ワンクリック変換。",
+  open:"ツールを開く", ad:"広告",
+  img_sub:"画像をドロップ、貼り付け、または選択。品質・形式・サイズを調整して、個別またはZIPで保存できます。",
+  quality:"品質", format:"出力形式", maxw:"最大幅", orig:"元のサイズ", after:"圧縮後",
+  png_note:"PNGは可逆圧縮のため、品質スライダーの効果は小さくなります。大きく削減するにはWebPかJPEG、または最大幅の縮小をお使いください。",
+  drop_t:"ここに画像をドロップ", drop_s:"またはクリックして選択 · 貼り付け：", drop_f:"JPG, PNG, WebP, GIF, AVIF · 一括処理対応",
+  files:"ファイル数", total_saved:"削減率", btn_clear:"すべてクリア", btn_zip:"すべてZIPで保存", btn_dl:"ダウンロード", remove:"削除",
+  s_queued:"待機中", s_processing:"圧縮中…", s_done:"完了", s_failed:"失敗",
+  tip_t:"ヒント", tip_img:"品質75〜80%のWebPなら、見た目をほぼ変えずに容量を60〜90%削減できます。設定を変えると全画像が即座に再圧縮されます。",
+  qr_sub:"色やドットスタイル、中央ロゴを自由にカスタマイズしたQRコードを作成。高解像度PNGまたはSVGで書き出せます。",
+  qt_url:"ウェブサイト", qt_wifi:"Wi-Fi", qt_wa:"WhatsApp", qt_text:"テキスト",
+  l_url:"ウェブサイトのURL", l_ssid:"ネットワーク名（SSID）", l_pass:"パスワード", l_enc:"セキュリティ", enc_none:"なし（オープン）",
+  l_phone:"電話番号（国番号付き）", l_msg:"あらかじめ入力するメッセージ（任意）", l_text:"テキスト",
+  ph_url:"https://example.com", ph_ssid:"自宅のWi-Fi", ph_phone:"+81 90 1234 5678", ph_msg:"こんにちは！詳しく知りたいです…", ph_qrtext:"エンコードしたい内容を入力…",
+  s_title:"スタイルとブランディング", fg:"前景色", bg:"背景色", dots_style:"ドットスタイル", d_square:"四角", d_rounded:"丸角", d_dots:"ドット",
+  ecl:"誤り訂正レベル", logo:"中央ロゴ", logo_up:"ロゴをアップロード", logo_auto:"ロゴを入れても読み取れるよう、自動でHに引き上げました。",
+  qr_wait:"内容を入力するとQRコードが生成されます", dl_png:"PNG（高解像度）", dl_svg:"SVG",
+  tx_sub:"リアルタイム統計、キーワード分析、AIプロンプトや記事・Markdown向けのワンクリック整形を備えた集中エディタ。",
+  ph_editor:"ここにテキストを貼り付けるか入力してください…", st_words:"単語数", st_chars:"文字数", st_charsns:"文字数（空白除く）", st_sent:"文数", st_para:"段落数", st_read:"読了時間", st_speak:"読み上げ時間",
+  kw:"上位キーワード", kw_empty:"入力すると出現頻度が表示されます。", u_min:"分", u_sec:"秒",
+  tf_h:"変換", tf_clean:"書式をクリーンアップ", tf_tcase:"スマートタイトルケース", tf_upper:"大文字", tf_lower:"小文字", tf_scase:"文頭のみ大文字",
+  tf_dedupe:"重複行を削除", tf_sort:"A–Z順に並べ替え", tf_undo:"元に戻す", tf_copy:"コピー", tf_clear:"クリア", tf_export:".TXTで書き出し",
+  faq_h:"よくある質問",
+  f1q:"ファイルはサーバーにアップロードされますか？", f1a:"いいえ。すべてJavaScriptとCanvas APIを使ってブラウザ内で処理されます。画像、テキスト、QRデータが端末の外に出ることはありません。",
+  f2q:"NexaTools Proは本当に無料ですか？", f2a:"はい。制限、会員登録、透かしはありません。何ファイルでも処理できます。",
+  f3q:"対応している画像形式は？", f3a:"JPG、PNG、WebP、GIF、BMP、AVIF（ブラウザによる）を読み込み、WebP・JPEG・PNGで書き出せます。PNGは可逆圧縮のため、品質設定は主にWebPとJPEGに効きます。",
+  f4q:"QRコードにロゴを入れられますか？", f4a:"はい。QRデザイナーでロゴをアップロードしてください。読み取りやすさを保つため、誤り訂正レベルは自動で高に引き上げられます。",
+  f5q:"回線が遅くても使えますか？", f5a:"処理はすべてローカルなので高速です。初回アクセス時のみ、ページ用ライブラリをCDNから読み込みます。",
+  foot:"すべてブラウザ内でローカル処理されます。",
+  t_added:"画像を{n}件追加しました", t_notimg:"画像ファイルのみ対応しています", t_zip:"ZIPの準備ができました。ダウンロードを開始します", t_zipfail:"ZIPファイルを作成できませんでした", t_zipnone:"ダウンロードできる圧縮済み画像がありません",
+  t_saved:"{name} をダウンロードしました", t_cleared:"すべての画像をクリアしました", t_removed:"画像を削除しました", t_procfail:"{name} を処理できませんでした",
+  t_qrok:"QRコードをダウンロードしました", t_qrfail:"QRコードを生成できませんでした。内容が長すぎる可能性があります。", t_qrneed:"先に内容を入力してください", t_logook:"ロゴを追加しました", t_logobad:"PNG、JPG、SVG、WebPの画像を選択してください",
+  t_copied:"クリップボードにコピーしました", t_copyfail:"コピーに失敗しました。手動で選択してください", t_done:"適用しました", t_empty:"変換するテキストがありません", t_exp:"テキストを書き出しました", t_undo_none:"元に戻す操作はありません",
+  t_lang:"言語：日本語", t_generic:"問題が発生しました。もう一度お試しください。", t_libs:"必要なライブラリを読み込めませんでした。接続を確認してください。"
+},
+ar: {
+  title:"NexaTools Pro — ضاغط صور ومصمم QR واستوديو نصوص خاص",
+  badge:"خصوصية 100% • معالجة محلية داخل المتصفح", nav_home:"الرئيسية", nav_img:"استوديو الصور", nav_qr:"مصمم QR", nav_text:"استوديو النصوص",
+  theme:"تبديل المظهر", lang:"اللغة",
+  hero_a:"كل الأدوات التي تحتاجها.", hero_b:"بلا رفع ملفات. بلا حدود.",
+  hero_sub:"اضغط الصور دفعة واحدة، وصمّم رموز QR بهويتك، وحلّل النصوص — كل ذلك داخل متصفحك. ملفاتك لا تصل إلى أي خادم.",
+  hero_cta:"ابدأ الضغط",
+  tr1:"لا رفع إلى الخوادم", tr1d:"الملفات تبقى على جهازك", tr2:"معالجة فورية", tr2d:"بقوة متصفحك", tr3:"غير محدود ومجاني", tr3d:"بدون تسجيل أو علامة مائية",
+  c_img:"اضغط JPG وPNG وWebP دفعة واحدة مع تغيير الحجم وتنزيل ZIP بنقرة.",
+  c_qr:"أنشئ رموز QR أنيقة للروابط وWi-Fi وواتساب والنصوص مع شعارك الخاص.",
+  c_text:"عدّاد كلمات مباشر ووقت القراءة وكثافة الكلمات المفتاحية وتحويلات بنقرة واحدة.",
+  open:"افتح الأداة", ad:"إعلان",
+  img_sub:"أفلت الصور أو الصقها أو تصفّحها. اضبط الجودة والصيغة والحجم ثم نزّلها فرادى أو في ملف ZIP.",
+  quality:"الجودة", format:"الصيغة المطلوبة", maxw:"أقصى عرض", orig:"الأصلي", after:"بعد الضغط",
+  png_note:"صيغة PNG بلا فقدان للجودة، لذا تأثير شريط الجودة محدود. استخدم WebP أو JPEG لأكبر توفير، أو قلّل أقصى عرض.",
+  drop_t:"أفلت الصور هنا", drop_s:"أو انقر للتصفح · الصق باستخدام", drop_f:"JPG وPNG وWebP وGIF وAVIF · يدعم المعالجة الجماعية",
+  files:"الملفات", total_saved:"التوفير", btn_clear:"مسح الكل", btn_zip:"تنزيل الكل بصيغة ZIP", btn_dl:"تنزيل", remove:"إزالة",
+  s_queued:"في الانتظار", s_processing:"جارٍ الضغط…", s_done:"تم", s_failed:"فشل",
+  tip_t:"نصيحة", tip_img:"صيغة WebP بجودة 75–80% تقلّل الحجم عادةً بنسبة 60–90% دون فرق ملحوظ. تغيير أي إعداد يعيد ضغط كل الصور فورًا.",
+  qr_sub:"صمّم رمز QR قابلًا للمسح بألوان وأنماط نقاط وشعار في المنتصف. صدّر بصيغة PNG عالية الدقة أو SVG.",
+  qt_url:"رابط موقع", qt_wifi:"Wi-Fi", qt_wa:"واتساب", qt_text:"نص عادي",
+  l_url:"عنوان الموقع", l_ssid:"اسم الشبكة (SSID)", l_pass:"كلمة المرور", l_enc:"الأمان", enc_none:"بدون (شبكة مفتوحة)",
+  l_phone:"رقم الهاتف (مع رمز الدولة)", l_msg:"رسالة جاهزة (اختياري)", l_text:"نصك",
+  ph_url:"https://example.com", ph_ssid:"شبكة المنزل", ph_phone:"+971 50 123 4567", ph_msg:"مرحبًا! أود معرفة المزيد…", ph_qrtext:"اكتب أي نص لترميزه…",
+  s_title:"الأسلوب والهوية", fg:"اللون الأمامي", bg:"الخلفية", dots_style:"نمط النقاط", d_square:"مربع", d_rounded:"مستدير", d_dots:"نقاط",
+  ecl:"تصحيح الأخطاء", logo:"الشعار المركزي", logo_up:"رفع شعار", logo_auto:"تم رفعه إلى H تلقائيًا ليظل الرمز قابلًا للمسح مع الشعار.",
+  qr_wait:"أدخل المحتوى لإنشاء رمز QR", dl_png:"PNG (دقة عالية)", dl_svg:"SVG",
+  tx_sub:"محرر هادئ بإحصاءات مباشرة وتحليل للكلمات المفتاحية وتنظيف بنقرة واحدة لأوامر الذكاء الاصطناعي والمقالات وMarkdown.",
+  ph_editor:"الصق نصك أو اكتبه هنا…", st_words:"الكلمات", st_chars:"الأحرف", st_charsns:"الأحرف (بدون مسافات)", st_sent:"الجمل", st_para:"الفقرات", st_read:"وقت القراءة", st_speak:"وقت الإلقاء",
+  kw:"أهم الكلمات المفتاحية", kw_empty:"ابدأ الكتابة لعرض الكثافة.", u_min:"د", u_sec:"ث",
+  tf_h:"التحويلات", tf_clean:"تنظيف التنسيق", tf_tcase:"عناوين ذكية", tf_upper:"أحرف كبيرة", tf_lower:"أحرف صغيرة", tf_scase:"بداية الجملة",
+  tf_dedupe:"حذف الأسطر المكررة", tf_sort:"ترتيب أبجدي", tf_undo:"تراجع", tf_copy:"نسخ", tf_clear:"مسح", tf_export:"تصدير .TXT",
+  faq_h:"الأسئلة الشائعة",
+  f1q:"هل تُرفع ملفاتي إلى خادم؟", f1a:"لا. كل شيء يعمل محليًا داخل متصفحك باستخدام JavaScript وواجهة Canvas. صورك ونصوصك وبيانات QR لا تغادر جهازك أبدًا.",
+  f2q:"هل NexaTools Pro مجاني فعلًا؟", f2a:"نعم. بلا حدود ولا تسجيل ولا علامات مائية. عالج أي عدد من الملفات.",
+  f3q:"ما صيغ الصور المدعومة؟", f3a:"يمكنك استيراد JPG وPNG وWebP وGIF وBMP وAVIF (حسب متصفحك) والتصدير إلى WebP أو JPEG أو PNG. صيغة PNG بلا فقدان، لذا يؤثر شريط الجودة غالبًا على WebP وJPEG.",
+  f4q:"هل يمكنني إضافة شعاري إلى رمز QR؟", f4a:"نعم. ارفع شعارًا في مصمم QR. يُرفع تصحيح الأخطاء تلقائيًا إلى المستوى العالي ليظل الرمز قابلًا للمسح.",
+  f5q:"هل يعمل مع اتصال بطيء؟", f5a:"كل المعالجة محلية لذا تبقى سريعة. فقط مكتبات الصفحة تُحمَّل من شبكات CDN عند الزيارة الأولى.",
+  foot:"تتم معالجة كل شيء محليًا داخل متصفحك.",
+  t_added:"تمت إضافة {n} صورة", t_notimg:"ملفات الصور فقط مدعومة", t_zip:"ملف ZIP جاهز — بدأ التنزيل", t_zipfail:"تعذّر إنشاء ملف ZIP", t_zipnone:"لا توجد صور مضغوطة للتنزيل بعد",
+  t_saved:"تم تنزيل {name}", t_cleared:"تم مسح كل الصور", t_removed:"تمت إزالة الصورة", t_procfail:"تعذّرت معالجة {name}",
+  t_qrok:"تم تنزيل رمز QR", t_qrfail:"تعذّر إنشاء رمز QR. ربما المحتوى طويل جدًا.", t_qrneed:"أدخل المحتوى أولًا", t_logook:"تمت إضافة الشعار", t_logobad:"اختر صورة بصيغة PNG أو JPG أو SVG أو WebP",
+  t_copied:"تم النسخ إلى الحافظة", t_copyfail:"فشل النسخ — حدّد النص يدويًا", t_done:"تم التطبيق", t_empty:"لا يوجد نص للتحويل بعد", t_exp:"تم تصدير النص", t_undo_none:"لا شيء للتراجع عنه",
+  t_lang:"اللغة: العربية", t_generic:"حدث خطأ ما. حاول مرة أخرى.", t_libs:"تعذّر تحميل مكتبة مطلوبة. تحقق من اتصالك."
+}
+};
+
+const LANGS = [
+  { code:'en', label:'English',  short:'EN', dir:'ltr' },
+  { code:'es', label:'Español',  short:'ES', dir:'ltr' },
+  { code:'fr', label:'Français', short:'FR', dir:'ltr' },
+  { code:'ru', label:'Русский',  short:'RU', dir:'ltr' },
+  { code:'tr', label:'Türkçe',   short:'TR', dir:'ltr' },
+  { code:'ja', label:'日本語',    short:'JA', dir:'ltr' },
+  { code:'ar', label:'العربية',  short:'AR', dir:'rtl' }
+];
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+let lang = 'en';
+
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+function t(key, vars) {
+  let s = (I18N[lang] && I18N[lang][key]);
+  if (s === undefined) s = I18N.en[key];
+  if (s === undefined) s = key;
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function icons() { try { if (window.lucide) lucide.createIcons(); } catch (e) {} }
+function fmtBytes(b) {
+  if (!isFinite(b) || b <= 0) return '0 B';
+  const u = ['B','KB','MB','GB']; const i = Math.min(u.length - 1, Math.floor(Math.log(b) / Math.log(1024)));
+  return (b / Math.pow(1024, i)).toFixed(i ? 1 : 0) + ' ' + u[i];
+}
+function debounce(fn, ms) { let h; return function () { const a = arguments; clearTimeout(h); h = setTimeout(() => fn.apply(null, a), ms); }; }
+function downloadBlob(blob, name) {
+  if (typeof saveAs === 'function') { saveAs(blob, name); return; }
+  const a = document.createElement('a'); const u = URL.createObjectURL(blob);
+  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+}
+
+/* ---------- Toasts ---------- */
+function toast(key, type, vars) {
+  type = type || 'success';
+  const msg = (I18N.en[key] !== undefined || (I18N[lang] && I18N[lang][key] !== undefined)) ? t(key, vars) : key;
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const ic = type === 'error' ? 'circle-alert' : type === 'info' ? 'info' : 'circle-check';
+  el.innerHTML = '<i data-lucide="' + ic + '" class="w-5 h-5 shrink-0"></i><span>' + esc(msg) + '</span>';
+  const host = $('#toasts');
+  host.appendChild(el);
+  while (host.children.length > 4) host.firstChild.remove();
+  icons();
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); }, 3200);
+}
+window.addEventListener('unhandledrejection', () => toast('t_generic', 'error'));
+
+/* =====================================================================
+   i18n APPLY
+   ===================================================================== */
+function applyLang(code, silent) {
+  if (!I18N[code]) code = 'en';
+  lang = code;
+  const meta = LANGS.find(l => l.code === code);
+  document.documentElement.lang = code;
+  document.documentElement.dir = meta.dir;
+  $$('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  $$('[data-i18n-ph]').forEach(el => { el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))); });
+  $$('[data-i18n-title]').forEach(el => { const v = t(el.getAttribute('data-i18n-title')); el.setAttribute('title', v); el.setAttribute('aria-label', v); });
+  $('#langCode').textContent = meta.short;
+  buildLangMenu();
+  renderImgList();
+  updateTextStats();
+  updateRouteTitle();
+  store('nexa_lang', code);
+  if (!silent) toast('t_lang', 'info');
+}
+function buildLangMenu() {
+  const ul = $('#langMenu');
+  ul.innerHTML = LANGS.map(l =>
+    '<li role="option" aria-selected="' + (l.code === lang) + '"><button type="button" data-lang="' + l.code + '" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-start hover:bg-[var(--field)] ' + (l.code === lang ? 'bg-[var(--field)] font-bold' : '') + '">' +
+    '<span class="w-8 text-center text-[11px] font-extrabold px-1.5 py-0.5 rounded-md border hairline">' + l.short + '</span><span class="flex-1">' + l.label + '</span>' +
+    (l.code === lang ? '<i data-lucide="check" class="w-4 h-4 text-indigo-400"></i>' : '') + '</button></li>').join('');
+  icons();
+}
+function toggleLangMenu(open) {
+  const menu = $('#langMenu'); const btn = $('#langBtn');
+  const willOpen = open === undefined ? menu.classList.contains('hidden') : open;
+  menu.classList.toggle('hidden', !willOpen);
+  btn.setAttribute('aria-expanded', String(willOpen));
+}
+$('#langBtn').addEventListener('click', e => { e.stopPropagation(); toggleLangMenu(); });
+$('#langMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]'); if (!b) return;
+  applyLang(b.getAttribute('data-lang')); toggleLangMenu(false);
+});
+document.addEventListener('click', e => { if (!e.target.closest('#langWrap')) toggleLangMenu(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleLangMenu(false); });
+
+/* =====================================================================
+   THEME
+   ===================================================================== */
+function setTheme(mode) {
+  document.documentElement.classList.toggle('dark', mode === 'dark');
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', mode === 'dark' ? '#07080c' : '#f6f7fb');
+  store('nexa_theme', mode);
+}
+$('#themeBtn').addEventListener('click', () => setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark'));
+
+/* =====================================================================
+   ROUTER (hash)
+   ===================================================================== */
+const ROUTES = { '': 'home', '#home': 'home', '#image-compressor': 'image-compressor', '#qr-generator': 'qr-generator', '#text-studio': 'text-studio' };
+let currentRoute = 'home';
+function updateRouteTitle() {
+  const map = { 'image-compressor': 'nav_img', 'qr-generator': 'nav_qr', 'text-studio': 'nav_text' };
+  document.title = currentRoute === 'home' ? t('title') : t(map[currentRoute]) + ' · NexaTools Pro';
+}
+function route() {
+  currentRoute = ROUTES[location.hash] || 'home';
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + currentRoute));
+  const isTool = currentRoute !== 'home';
+  $('#toolPills').classList.toggle('hidden', !isTool);
+  $('#toolShell').classList.toggle('hidden', !isTool);
+  $$('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === currentRoute));
+  $$('[data-pill]').forEach(a => a.classList.toggle('on', a.dataset.pill === currentRoute));
+  updateRouteTitle();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  if (currentRoute === 'qr-generator') renderQR();
+}
+window.addEventListener('hashchange', route);
+
+/* =====================================================================
+   TOOL 1 — IMAGE STUDIO
+   ===================================================================== */
+const img = { items: [], quality: 80, format: 'image/webp', maxW: 0, ver: 0, seq: 0 };
+const EXT = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' };
+let procRunning = false, procDirty = false;
+
+function isImageFile(f) { return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(f.name); }
+
+function addFiles(fileList) {
+  const files = Array.from(fileList || []).filter(isImageFile);
+  if (!files.length) { toast('t_notimg', 'error'); return; }
+  files.forEach(f => img.items.push({ id: ++img.seq, file: f, name: f.name || ('image-' + img.seq + '.png'), size: f.size, status: 'queued', blob: null, newSize: null, ext: 'webp', dims: '', thumb: URL.createObjectURL(f), ver: -1, bmp: null }));
+  if (location.hash !== '#image-compressor') location.hash = '#image-compressor';
+  renderImgList();
+  processAll();
+  toast('t_added', 'success', { n: files.length });
+}
+
+async function loadBitmap(file) {
+  if (window.createImageBitmap) { try { return await createImageBitmap(file); } catch (e) { /* fall through */ } }
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file); const im = new Image();
+    im.onload = () => { URL.revokeObjectURL(u); res(im); };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('decode')); };
+    im.src = u;
+  });
+}
+
+async function compressItem(it) {
+  const myVer = img.ver, fmt = img.format, q = img.quality / 100, maxW = img.maxW;
+  it.status = 'processing'; renderItem(it);
+  try {
+    if (!it.bmp) it.bmp = await loadBitmap(it.file);
+    const sw = it.bmp.width, sh = it.bmp.height;
+    let w = sw, h = sh, resized = false;
+    if (maxW && sw > maxW) { h = Math.max(1, Math.round(sh * maxW / sw)); w = maxW; resized = true; }
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    if (fmt === 'image/jpeg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); }
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(it.bmp, 0, 0, w, h);
+    let blob = await new Promise(r => c.toBlob(r, fmt, q));
+    if (!blob) throw new Error('encode');
+    let ext = EXT[blob.type] || 'png';
+    // Never make a file bigger when nothing else changed
+    if (!resized && it.file.type === blob.type && blob.size >= it.file.size) { blob = it.file; ext = EXT[it.file.type] || ext; }
+    it.blob = blob; it.newSize = blob.size; it.ext = ext; it.dims = (resized ? sw + '×' + sh + ' → ' : '') + w + '×' + h;
+    it.status = 'done'; it.ver = myVer;
+  } catch (e) {
+    it.status = 'error'; it.ver = myVer;
+    toast('t_procfail', 'error', { name: it.name });
+  }
+  renderItem(it); updateImgSummary();
+}
+
+async function processAll() {
+  if (procRunning) { procDirty = true; return; }
+  procRunning = true;
+  try {
+    do {
+      procDirty = false;
+      for (const it of img.items.slice()) {
+        if (!img.items.includes(it)) continue;
+        if (it.status === 'done' && it.ver === img.ver) continue;
+        if (procDirty) break;
+        await compressItem(it);
+      }
+    } while (procDirty);
+  } finally { procRunning = false; }
+}
+
+function outName(it) { const base = it.name.replace(/\.[^.]+$/, '') || 'image'; return base + '-min.' + it.ext; }
+function savedPct(it) { return it.newSize != null && it.size ? Math.max(0, Math.round((1 - it.newSize / it.size) * 100)) : 0; }
+
+function itemHTML(it) {
+  const pct = savedPct(it);
+  let bar, badge, status;
+  if (it.status === 'done') {
+    bar = '<div class="bar-fill" style="--w:' + Math.max(pct, 2) + '%"></div>';
+    badge = '<span class="text-xs font-extrabold px-2 py-1 rounded-lg ' + (pct > 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[var(--field)] muted') + '">' + (pct > 0 ? '−' + pct + '%' : '0%') + '</span>';
+    status = fmtBytes(it.size) + ' → <b class="text-[var(--text)]">' + fmtBytes(it.newSize) + '</b>' + (it.dims ? ' · ' + esc(it.dims) : '');
+  } else if (it.status === 'error') {
+    bar = '<div class="bar-err"></div>'; badge = '<span class="text-xs font-bold px-2 py-1 rounded-lg bg-red-500/15 text-red-400">' + t('s_failed') + '</span>'; status = fmtBytes(it.size);
+  } else {
+    bar = '<div class="bar-indet"></div>'; badge = '<span class="text-xs font-semibold muted">' + t(it.status === 'processing' ? 's_processing' : 's_queued') + '</span>'; status = fmtBytes(it.size);
+  }
+  return '<li class="card p-3 flex items-center gap-3 sm:gap-4" data-id="' + it.id + '">' +
+    '<img src="' + it.thumb + '" alt="" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover bg-[var(--field)] shrink-0" loading="lazy">' +
+    '<div class="flex-1 min-w-0">' +
+      '<div class="flex items-center justify-between gap-2 mb-1"><div class="font-semibold text-sm truncate" dir="auto">' + esc(it.name) + '</div>' + badge + '</div>' +
+      '<div class="text-xs muted mb-2 truncate">' + status + '</div>' +
+      '<div class="h-1.5 rounded-full bg-[var(--field)] overflow-hidden">' + bar + '</div>' +
+    '</div>' +
+    '<div class="flex gap-1.5 shrink-0">' +
+      '<button class="btn btn-sm !px-2.5" data-act="dl" ' + (it.status === 'done' ? '' : 'disabled') + ' aria-label="' + esc(t('btn_dl')) + '" title="' + esc(t('btn_dl')) + '"><i data-lucide="download" class="w-4 h-4"></i></button>' +
+      '<button class="btn btn-sm btn-ghost !px-2.5" data-act="rm" aria-label="' + esc(t('remove')) + '" title="' + esc(t('remove')) + '"><i data-lucide="x" class="w-4 h-4"></i></button>' +
+    '</div></li>';
+}
+function renderItem(it) {
+  const old = $('#imgList [data-id="' + it.id + '"]'); if (!old) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = itemHTML(it);
+  old.replaceWith(tmp.firstElementChild); icons();
+}
+function renderImgList() {
+  $('#imgList').innerHTML = img.items.map(itemHTML).join('');
+  icons(); updateImgSummary();
+}
+function updateImgSummary() {
+  const box = $('#imgSummary'); const has = img.items.length > 0;
+  box.classList.toggle('hidden', !has); box.classList.toggle('flex', has);
+  const done = img.items.filter(i => i.status === 'done');
+  const o = done.reduce((a, i) => a + i.size, 0), n = done.reduce((a, i) => a + i.newSize, 0);
+  $('#sumCount').textContent = img.items.length;
+  $('#sumOrig').textContent = fmtBytes(o); $('#sumNew').textContent = fmtBytes(n);
+  $('#sumSaved').textContent = (o ? Math.max(0, Math.round((1 - n / o) * 100)) : 0) + '%';
+}
+function settingsChanged() {
+  img.ver++;
+  img.items.forEach(i => { if (i.status !== 'processing') i.status = 'queued'; });
+  $('#pngNote').classList.toggle('hidden', img.format !== 'image/png');
+  renderImgList(); processAll();
+}
+
+// Controls
+const qLabel = $('#qVal');
+$('#qRange').addEventListener('input', e => { img.quality = +e.target.value; qLabel.textContent = img.quality + '%'; });
+$('#qRange').addEventListener('change', settingsChanged);
+function bindSeg(sel, cb) {
+  $(sel).addEventListener('click', e => {
+    const b = e.target.closest('button[data-val]'); if (!b) return;
+    $$('button', $(sel)).forEach(x => x.classList.toggle('on', x === b)); cb(b.dataset.val);
+  });
+}
+bindSeg('#fmtSeg', v => { img.format = v; settingsChanged(); });
+bindSeg('#wSeg', v => { img.maxW = +v; settingsChanged(); });
+
+// Dropzone
+const dz = $('#dropzone'), fi = $('#fileInput');
+dz.addEventListener('click', () => fi.click());
+dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fi.click(); } });
+fi.addEventListener('change', () => { if (fi.files.length) addFiles(fi.files); fi.value = ''; });
+['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+dz.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+// stop the browser from navigating away if a file is dropped elsewhere
+['dragover', 'drop'].forEach(ev => window.addEventListener(ev, e => { if (!e.target.closest || !e.target.closest('#dropzone')) e.preventDefault(); }));
+
+// Paste (Ctrl+V)
+document.addEventListener('paste', e => {
+  const cd = e.clipboardData; if (!cd) return;
+  const files = Array.from(cd.files || []).filter(isImageFile);
+  if (!files.length) return;
+  const ae = document.activeElement; const editing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
+  if (editing && currentRoute !== 'image-compressor') return;
+  e.preventDefault(); addFiles(files);
+});
+
+// List actions
+$('#imgList').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const li = b.closest('[data-id]'); const it = img.items.find(i => i.id === +li.dataset.id); if (!it) return;
+  if (b.dataset.act === 'dl' && it.blob) { downloadBlob(it.blob, outName(it)); toast('t_saved', 'success', { name: outName(it) }); }
+  if (b.dataset.act === 'rm') { URL.revokeObjectURL(it.thumb); if (it.bmp && it.bmp.close) try { it.bmp.close(); } catch (x) {} img.items = img.items.filter(i => i !== it); renderImgList(); toast('t_removed', 'info'); }
+});
+$('#clearImgs').addEventListener('click', () => {
+  img.items.forEach(i => { URL.revokeObjectURL(i.thumb); if (i.bmp && i.bmp.close) try { i.bmp.close(); } catch (x) {} });
+  img.items = []; renderImgList(); toast('t_cleared', 'info');
+});
+$('#zipBtn').addEventListener('click', async () => {
+  const done = img.items.filter(i => i.status === 'done' && i.blob);
+  if (!done.length) { toast('t_zipnone', 'error'); return; }
+  if (typeof JSZip === 'undefined') { toast('t_libs', 'error'); return; }
+  const btn = $('#zipBtn'); btn.disabled = true;
+  try {
+    const zip = new JSZip(); const used = new Set();
+    done.forEach(it => {
+      let n = outName(it), k = 1; const base = n.replace(/\.[^.]+$/, ''), ext = it.ext;
+      while (used.has(n.toLowerCase())) n = base + '-' + (++k) + '.' + ext;
+      used.add(n.toLowerCase()); zip.file(n, it.blob);
+    });
+    const content = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    downloadBlob(content, 'nexatools-images.zip'); toast('t_zip');
+  } catch (err) { toast('t_zipfail', 'error'); }
+  finally { btn.disabled = false; }
+});
+
+/* =====================================================================
+   TOOL 2 — QR DESIGNER
+   ===================================================================== */
+const qrS = { tab: 'url', dots: 'square', logo: null, logoName: '', hasData: false, lastOpts: null };
+const DOT_MAP = { square: { d: 'square', c: 'square', cd: 'square' }, rounded: { d: 'rounded', c: 'extra-rounded', cd: 'dot' }, dots: { d: 'dots', c: 'dot', cd: 'dot' } };
+
+function qrData() {
+  switch (qrS.tab) {
+    case 'url': {
+      const v = $('#qUrl').value.trim(); if (!v) return '';
+      return /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : 'https://' + v;
+    }
+    case 'wifi': {
+      const ssid = $('#qSsid').value; if (!ssid.trim()) return '';
+      const esc2 = s => s.replace(/([\\;,":])/g, '\\$1'); const enc = $('#qEnc').value; const pass = $('#qPass').value;
+      return 'WIFI:T:' + (enc === 'nopass' ? 'nopass' : enc) + ';S:' + esc2(ssid) + ';' + (enc === 'nopass' ? '' : 'P:' + esc2(pass) + ';') + ';';
+    }
+    case 'wa': {
+      const digits = $('#qPhone').value.replace(/\D/g, ''); if (digits.length < 5) return '';
+      const m = $('#qMsg').value.trim(); return 'https://wa.me/' + digits + (m ? '?text=' + encodeURIComponent(m) : '');
+    }
+    default: return $('#qText').value.trim();
+  }
+}
+function qrOptions(size, type) {
+  const data = qrData(); const m = DOT_MAP[qrS.dots]; const fg = $('#qFg').value, bg = $('#qBg').value;
+  const ecl = qrS.logo ? 'H' : $('#qEcl').value;
+  return {
+    width: size, height: size, type: type || 'canvas', margin: 8,
+    data: data || 'https://nexatools.pro',
+    image: qrS.logo || undefined,
+    qrOptions: { typeNumber: 0, mode: 'Byte', errorCorrectionLevel: ecl },
+    dotsOptions: { type: m.d, color: fg },
+    cornersSquareOptions: { type: m.c, color: fg },
+    cornersDotOptions: { type: m.cd, color: fg },
+    backgroundOptions: { color: bg },
+    imageOptions: { crossOrigin: 'anonymous', hideBackgroundDots: true, imageSize: 0.32, margin: 4 }
+  };
+}
+function renderQR() {
+  const mount = $('#qrMount'); if (!mount) return;
+  if (typeof QRCodeStyling === 'undefined') { $('#qrVeil').style.display = 'grid'; return; }
+  const data = qrData(); qrS.hasData = !!data;
+  $('#qrVeil').style.display = data ? 'none' : 'grid';
+  $('#dlPng').disabled = !data; $('#dlSvg').disabled = !data;
+  $('#eclHint').classList.toggle('hidden', !qrS.logo);
+  try {
+    mount.innerHTML = '';
+    const opts = qrOptions(280, 'canvas'); qrS.lastOpts = opts;
+    new QRCodeStyling(opts).append(mount);
+    const cv = mount.firstChild; if (cv && cv.style) { cv.style.maxWidth = '100%'; cv.style.height = 'auto'; }
+  } catch (e) { toast('t_qrfail', 'error'); }
+}
+const scheduleQR = debounce(renderQR, 120);
+
+$('#qrTabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-qt]'); if (!b) return;
+  qrS.tab = b.dataset.qt;
+  $$('#qrTabs .tab').forEach(x => x.classList.toggle('on', x === b));
+  $$('[data-qp]').forEach(p => p.classList.toggle('hidden', p.dataset.qp !== qrS.tab));
+  renderQR();
+});
+['#qUrl', '#qSsid', '#qPass', '#qEnc', '#qPhone', '#qMsg', '#qText', '#qFg', '#qBg', '#qEcl'].forEach(s => {
+  $(s).addEventListener('input', scheduleQR); $(s).addEventListener('change', scheduleQR);
+});
+$('#qSwap').addEventListener('click', () => { const a = $('#qFg').value; $('#qFg').value = $('#qBg').value; $('#qBg').value = a; renderQR(); });
+bindSeg('#qDots', v => { qrS.dots = v; renderQR(); });
+
+$('#logoBtn').addEventListener('click', () => $('#logoInput').click());
+$('#logoInput').addEventListener('change', e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  if (!/^image\/(png|jpeg|svg\+xml|webp)$/.test(f.type)) { toast('t_logobad', 'error'); return; }
+  const r = new FileReader();
+  r.onload = () => { qrS.logo = r.result; qrS.logoName = f.name; $('#logoName').textContent = f.name; $('#logoRm').classList.remove('hidden'); renderQR(); toast('t_logook'); };
+  r.onerror = () => toast('t_logobad', 'error');
+  r.readAsDataURL(f);
+});
+$('#logoRm').addEventListener('click', () => { qrS.logo = null; $('#logoName').textContent = ''; $('#logoRm').classList.add('hidden'); renderQR(); });
+
+async function exportQR(ext) {
+  if (!qrS.hasData) { toast('t_qrneed', 'error'); return; }
+  if (typeof QRCodeStyling === 'undefined') { toast('t_libs', 'error'); return; }
+  try {
+    const big = new QRCodeStyling(qrOptions(1024, ext === 'svg' ? 'svg' : 'canvas'));
+    await big.download({ name: 'nexatools-qr', extension: ext });
+    toast('t_qrok');
+  } catch (e) { toast('t_qrfail', 'error'); }
+}
+$('#dlPng').addEventListener('click', () => exportQR('png'));
+$('#dlSvg').addEventListener('click', () => exportQR('svg'));
+
+/* =====================================================================
+   TOOL 3 — TEXT STUDIO
+   ===================================================================== */
+const ed = $('#editor'); let history = [];
+const STOP = new Set(('the and for are but not you with this that from have was were has had its they them their his her she him our out can will would could should about into over than then also just very more most some such only your what when where which who how why all any been being does did doing done too our own same other these those there here of to in is it on as at be by or an a i we he us my me so if no do up de la el en un una los las del que por con para les des une est pour dans qui sur pas plus der die das und ist ein eine mit von zu auf für не на что это как для был она они его так все при или но по из за от bir ve bu için ile da de ne çok daha gibi ama veya و في من على إلى عن أن ما هذا هذه كان التي الذي').split(/\s+/));
+const seg = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter(undefined, { granularity: 'word' }) : null;
+
+function tokenize(text) {
+  if (seg) { const out = []; for (const s of seg.segment(text)) if (s.isWordLike) out.push(s.segment); return out; }
+  return text.match(/[\p{L}\p{N}'’]+/gu) || [];
+}
+function fmtTime(mins) {
+  if (mins <= 0) return '0 ' + t('u_sec');
+  const secs = mins * 60;
+  if (secs < 60) return Math.max(1, Math.round(secs)) + ' ' + t('u_sec');
+  const m = Math.floor(secs / 60), s = Math.round(secs % 60);
+  return s ? m + ' ' + t('u_min') + ' ' + s + ' ' + t('u_sec') : m + ' ' + t('u_min');
+}
+function updateTextStats() {
+  const text = ed.value; const words = text.trim() ? tokenize(text) : [];
+  const chars = Array.from(text).length, charsNs = Array.from(text.replace(/\s/g, '')).length;
+  const sentences = text.trim() ? (text.match(/[^.!?。！？؟\n]+[.!?。！？؟]*/g) || []).filter(s => /[\p{L}\p{N}]/u.test(s)).length : 0;
+  const paras = text.trim() ? text.split(/\n\s*\n/).filter(p => p.trim()).length : 0;
+  const nf = new Intl.NumberFormat(lang === 'ar' ? 'ar-AE' : lang);
+  const set = (id, v) => { $(id).textContent = nf.format(v); };
+  set('#stWords', words.length); set('#stChars', chars); set('#stCharsNs', charsNs); set('#stSent', sentences); set('#stPara', paras);
+  $('#stRead').textContent = fmtTime(words.length / 238); $('#stSpeak').textContent = fmtTime(words.length / 150);
+
+  // keyword density
+  const freq = new Map();
+  words.forEach(w => { const k = w.toLowerCase(); if (k.length < 2 || STOP.has(k) || /^\d+$/.test(k)) return; if (k.length < 3 && !/[\u3040-\u30ff\u4e00-\u9fff]/.test(k)) return; freq.set(k, (freq.get(k) || 0) + 1); });
+  const top = Array.from(freq.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
+  const list = $('#kwList');
+  if (!top.length) { list.innerHTML = '<li class="muted text-xs">' + esc(t('kw_empty')) + '</li>'; return; }
+  const max = top[0][1];
+  list.innerHTML = top.map(([w, c]) => {
+    const pct = words.length ? (c / words.length * 100).toFixed(1) : '0';
+    return '<li><div class="flex justify-between gap-2 mb-1"><span class="font-semibold truncate" dir="auto">' + esc(w) + '</span><span class="muted text-xs whitespace-nowrap">' + c + '× · ' + pct + '%</span></div>' +
+      '<div class="h-1.5 rounded-full bg-[var(--field)]"><div class="kw-bar" style="width:' + Math.max(6, Math.round(c / max * 100)) + '%"></div></div></li>';
+  }).join('');
+}
+const scheduleStats = debounce(updateTextStats, 120);
+const saveDraft = debounce(() => store('nexa_draft', ed.value), 500);
+ed.addEventListener('input', () => { scheduleStats(); saveDraft(); });
+
+const SMALL = new Set(['a','an','the','and','but','or','nor','for','so','yet','as','at','by','in','of','on','to','up','via','vs','per','from','with','into','over']);
+const TF = {
+  clean: s => s.replace(/\r\n?/g, '\n').replace(/[ \t\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim(),
+  title: s => { let first = true; return s.toLowerCase().replace(/\p{L}[\p{L}'’]*/gu, (w, off) => { const isFirst = first; first = false; return (isFirst || !SMALL.has(w)) ? w.charAt(0).toUpperCase() + w.slice(1) : w; }); },
+  upper: s => s.toUpperCase(),
+  lower: s => s.toLowerCase(),
+  sentence: s => s.toLowerCase().replace(/(^\s*|[.!?]\s+|\n\s*)(\p{L})/gu, (m, p, c) => p + c.toUpperCase()).replace(/\bi\b(?=[\s,.!?']|$)/g, 'I'),
+  dedupe: s => { const seen = new Set(); return s.split('\n').filter(l => { const k = l.trim().toLowerCase(); if (!k) return true; if (seen.has(k)) return false; seen.add(k); return true; }).join('\n'); },
+  sort: s => s.split('\n').filter(l => l.trim() !== '').sort((a, b) => a.localeCompare(b, lang, { sensitivity: 'base', numeric: true })).join('\n')
+};
+function pushHistory() { history.push(ed.value); if (history.length > 40) history.shift(); }
+$('#tfBar').addEventListener('click', e => {
+  const b = e.target.closest('[data-tf]'); if (!b) return;
+  if (!ed.value.trim()) { toast('t_empty', 'error'); return; }
+  try { const out = TF[b.dataset.tf](ed.value); pushHistory(); ed.value = out; updateTextStats(); saveDraft(); toast('t_done'); }
+  catch (err) { toast('t_generic', 'error'); }
+});
+$('#txUndo').addEventListener('click', () => { if (!history.length) { toast('t_undo_none', 'info'); return; } ed.value = history.pop(); updateTextStats(); saveDraft(); toast('t_done', 'info'); });
+$('#txClear').addEventListener('click', () => { if (!ed.value) { toast('t_empty', 'error'); return; } pushHistory(); ed.value = ''; updateTextStats(); saveDraft(); toast('t_cleared', 'info'); });
+$('#txCopy').addEventListener('click', async () => {
+  if (!ed.value) { toast('t_empty', 'error'); return; }
+  try {
+    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(ed.value);
+    else { ed.select(); if (!document.execCommand('copy')) throw new Error('copy'); ed.setSelectionRange(0, 0); }
+    toast('t_copied');
+  } catch (e) { toast('t_copyfail', 'error'); }
+});
+$('#txExport').addEventListener('click', () => {
+  if (!ed.value) { toast('t_empty', 'error'); return; }
+  downloadBlob(new Blob([ed.value], { type: 'text/plain;charset=utf-8' }), 'nexatools-text.txt'); toast('t_exp');
+});
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+function init() {
+  $('#yr').textContent = new Date().getFullYear();
+  const savedTheme = store('nexa_theme');
+  setTheme(savedTheme || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+  const savedDraft = store('nexa_draft'); if (savedDraft) ed.value = savedDraft;
+  const savedLang = store('nexa_lang');
+  applyLang(savedLang && I18N[savedLang] ? savedLang : 'en', true);
+  route();
+  renderQR();
+  icons();
+  window.addEventListener('load', () => {
+    icons();
+    const missing = [typeof JSZip, typeof saveAs, typeof QRCodeStyling].includes('undefined');
+    if (missing) toast('t_libs', 'error');
+    if (currentRoute === 'qr-generator') renderQR();
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+})();
+</script>
+</body>
+</html>
